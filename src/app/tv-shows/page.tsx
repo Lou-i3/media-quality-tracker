@@ -51,20 +51,22 @@ export default async function TVShowsPage({ searchParams }: Props) {
 
   return (
     <div className="p-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">TV Shows</h1>
-        <p className="text-muted-foreground">
-          Browse and manage your TV show library
-        </p>
-      </div>
+      {/* Sticky Header + Toolbar */}
+      <div className="sticky top-0 z-10 bg-background pb-4 -mx-8 px-8 pt-0 -mt-8 border-b">
+        <div className="pt-8 mb-4">
+          <h1 className="text-3xl font-bold">TV Shows ({shows.length})</h1>
+          <p className="text-muted-foreground">
+            Browse and manage your TV show library
+          </p>
+        </div>
 
-      {/* Toolbar */}
-      <div className="mb-6">
+        {/* Toolbar */}
         <Suspense fallback={null}>
           <TVShowsToolbar />
         </Suspense>
       </div>
 
+      <div className="mt-6">
       {shows.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
@@ -181,6 +183,7 @@ export default async function TVShowsPage({ searchParams }: Props) {
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
