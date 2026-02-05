@@ -3,8 +3,9 @@
  *
  * Supports multiple naming conventions:
  * 1. Plex-style: /TV Shows/Show Name (2020)/Season 01/Show Name - S01E05 - Episode Title.mkv
- * 2. Standard SxxExx: Show.Name.S01E05.Episode.Title.1080p.mkv
- * 3. Alternative XxYY: Show Name 1x05.mkv
+ * 2. Plex Specials: /TV Shows/Show Name (2020)/Specials/Show Name - S00E01 - Special.mkv
+ * 3. Standard SxxExx: Show.Name.S01E05.Episode.Title.1080p.mkv
+ * 4. Alternative XxYY: Show Name 1x05.mkv
  */
 
 import { basename, dirname, sep } from 'path';
@@ -35,14 +36,34 @@ export function showNameMatchKey(name: string): string {
 }
 
 /**
+ * Check if a folder name is a season folder and extract the season number
+ * Supports: "Season XX", "Season X", "Specials" (returns 0)
+ */
+function parseSeasonFolder(folderName: string): number | null {
+  // Check for "Specials" folder (Season 0)
+  if (/^Specials$/i.test(folderName)) {
+    return 0;
+  }
+
+  // Check for "Season XX" pattern
+  const seasonMatch = folderName.match(/^Season\s+(\d+)$/i);
+  if (seasonMatch) {
+    return parseInt(seasonMatch[1], 10);
+  }
+
+  return null;
+}
+
+/**
  * Try to parse Plex-style directory structure
  * Expected: /media/TV Shows/Show Name (Year)/Season XX/filename.ext
+ * Also supports: /media/TV Shows/Show Name (Year)/Specials/filename.ext
  */
 function parsePlexStyle(filepath: string): ParsedFilename | null {
   const parts = filepath.split(sep);
 
-  // Find "Season XX" directory
-  const seasonIdx = parts.findIndex((p) => /^Season\s+\d+$/i.test(p));
+  // Find season directory (Season XX or Specials)
+  const seasonIdx = parts.findIndex((p) => parseSeasonFolder(p) !== null);
   if (seasonIdx === -1 || seasonIdx < 1) {
     return null;
   }
@@ -58,13 +79,11 @@ function parsePlexStyle(filepath: string): ParsedFilename | null {
     return null;
   }
 
-  // Extract season number
-  const seasonMatch = seasonDir.match(/Season\s+(\d+)/i);
-  if (!seasonMatch) {
+  // Extract season number (parseSeasonFolder already validated this)
+  const seasonNumber = parseSeasonFolder(seasonDir);
+  if (seasonNumber === null) {
     return null;
   }
-
-  const seasonNumber = parseInt(seasonMatch[1], 10);
 
   // Extract episode number from filename
   const episodeNumber = extractEpisodeNumber(filename);
@@ -86,13 +105,13 @@ function parsePlexStyle(filepath: string): ParsedFilename | null {
 
 /**
  * Try to extract show name from folder structure
- * Looks for "Show Name (Year)" folder above "Season XX" folder
+ * Looks for "Show Name (Year)" folder above "Season XX" or "Specials" folder
  */
 function getShowNameFromFolder(filepath: string): { name: string; year?: number } | null {
   const parts = filepath.split(sep);
 
-  // Find "Season XX" directory
-  const seasonIdx = parts.findIndex((p) => /^Season\s+\d+$/i.test(p));
+  // Find season directory (Season XX or Specials)
+  const seasonIdx = parts.findIndex((p) => parseSeasonFolder(p) !== null);
   if (seasonIdx > 0) {
     const showDir = parts[seasonIdx - 1];
     const showMatch = showDir.match(/^(.+?)(?:\s*\((\d{4})\))?$/);
@@ -142,9 +161,9 @@ function parseSxxExx(filepath: string): ParsedFilename | null {
   const showName = normalizeShowName(showNamePart);
 
   if (!showName) {
-    // Try to get show name from parent directory
+    // Try to get show name from parent directory (if not a season folder)
     const parentDir = basename(dirname(filepath));
-    if (parentDir && !parentDir.match(/^Season\s+\d+$/i)) {
+    if (parentDir && parseSeasonFolder(parentDir) === null) {
       return {
         showName: normalizeShowName(parentDir.replace(/\s*\(\d{4}\)$/, '')),
         seasonNumber,
