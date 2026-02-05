@@ -22,6 +22,17 @@ RUN npx prisma generate
 # Build Next.js (standalone output)
 RUN npm run build
 
+# Prisma dependencies stage - install only what's needed for migrations
+FROM node:22-alpine AS prisma-deps
+
+WORKDIR /prisma-deps
+
+# Create a minimal package.json for prisma CLI
+RUN echo '{"name":"prisma-deps","private":true,"dependencies":{"prisma":"7.3.0","dotenv":"16.4.7"}}' > package.json
+
+# Install prisma CLI and its dependencies
+RUN npm install --production && npm cache clean --force
+
 # Runtime stage - minimal image
 FROM node:22-alpine AS runner
 
@@ -45,14 +56,12 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Copy Prisma schema, migrations, and CLI for migrate deploy
+# Copy Prisma schema and migrations
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/dotenv ./node_modules/dotenv
-COPY --from=builder /app/node_modules/valibot ./node_modules/valibot
-COPY --from=builder /app/node_modules/pathe ./node_modules/pathe
 COPY prisma.config.ts ./
+
+# Copy Prisma CLI dependencies from dedicated stage
+COPY --from=prisma-deps /prisma-deps/node_modules ./node_modules
 
 # Copy package.json for version display
 COPY package.json ./

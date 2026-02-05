@@ -206,7 +206,7 @@ Breaking Bad 1x01.mkv
 - **Framework**: Next.js 16 (App Router, TypeScript, standalone output)
 - **Database**: SQLite with Prisma ORM
 - **UI**: shadcn/ui (Radix + Tailwind CSS)
-- **Deployment**: Docker with multi-stage build (~150MB image)
+- **Deployment**: Docker with multi-stage build (~420MB image)
 
 ## Development Commands
 
