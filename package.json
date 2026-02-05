@@ -1,6 +1,6 @@
 {
   "name": "media-quality-tracker",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Track media file quality, playback compatibility, and maintenance status for Plex libraries",
   "author": "Lou-i3",
   "license": "MIT",
