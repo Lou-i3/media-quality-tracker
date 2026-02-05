@@ -47,6 +47,13 @@ export class ScanProgressTracker {
     this.notify();
   }
 
+  /** Set processed count directly (for batch processing) */
+  setProcessedFiles(count: number, filepath?: string): void {
+    this.progress.processedFiles = count;
+    this.progress.currentFile = filepath;
+    this.notify();
+  }
+
   /** Add an error */
   addError(error: ScanError): void {
     this.progress.errors.push(error);

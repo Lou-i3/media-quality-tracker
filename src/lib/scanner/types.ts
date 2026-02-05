@@ -90,3 +90,16 @@ export interface ProcessedFile {
   file: DiscoveredFile;
   metadata: MediaMetadata;
 }
+
+/** Item ready for batch database processing */
+export interface BatchItem {
+  parsed: ParsedFilename;
+  file: DiscoveredFile;
+}
+
+/** Result of batch processing */
+export interface BatchResult {
+  filesAdded: number;
+  filesUpdated: number;
+  filesUnchanged: number;
+}

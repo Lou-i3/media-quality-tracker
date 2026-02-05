@@ -10,8 +10,30 @@ import type {
   ParsedFilename,
   DiscoveredFile,
   MediaMetadata,
+  BatchItem,
+  BatchResult,
 } from './types';
 import { showNameMatchKey } from './parser';
+
+/** Cache for show lookups during batch processing */
+interface ShowCache {
+  byMatchKey: Map<string, { id: number; title: string; year: number | null }>;
+}
+
+/** Cache for season lookups during batch processing */
+interface SeasonCache {
+  byKey: Map<string, number>; // "showId-seasonNum" -> seasonId
+}
+
+/** Cache for episode lookups during batch processing */
+interface EpisodeCache {
+  byKey: Map<string, number>; // "seasonId-episodeNum" -> episodeId
+}
+
+/** Cache for existing files */
+interface FileCache {
+  byPath: Map<string, { id: number; fileSize: bigint; dateModified: Date; fileExists: boolean }>;
+}
 
 /** Result of hierarchy lookup/creation */
 export interface HierarchyResult {
@@ -258,4 +280,180 @@ export async function getRecentScans(limit: number = 20) {
     orderBy: { startedAt: 'desc' },
     take: limit,
   });
+}
+
+/**
+ * Batch processor for efficient database operations
+ * Processes multiple files in a single transaction to minimize DB locks
+ */
+export class BatchProcessor {
+  private showCache: ShowCache = { byMatchKey: new Map() };
+  private seasonCache: SeasonCache = { byKey: new Map() };
+  private episodeCache: EpisodeCache = { byKey: new Map() };
+  private fileCache: FileCache = { byPath: new Map() };
+  private initialized = false;
+
+  /**
+   * Initialize caches by loading existing data from database
+   * Call this once before processing batches
+   */
+  async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    // Load all shows
+    const shows = await prisma.tVShow.findMany({
+      select: { id: true, title: true, year: true },
+    });
+    for (const show of shows) {
+      const key = showNameMatchKey(show.title);
+      this.showCache.byMatchKey.set(key, show);
+    }
+
+    // Load all seasons
+    const seasons = await prisma.season.findMany({
+      select: { id: true, tvShowId: true, seasonNumber: true },
+    });
+    for (const season of seasons) {
+      const key = `${season.tvShowId}-${season.seasonNumber}`;
+      this.seasonCache.byKey.set(key, season.id);
+    }
+
+    // Load all episodes
+    const episodes = await prisma.episode.findMany({
+      select: { id: true, seasonId: true, episodeNumber: true },
+    });
+    for (const episode of episodes) {
+      const key = `${episode.seasonId}-${episode.episodeNumber}`;
+      this.episodeCache.byKey.set(key, episode.id);
+    }
+
+    // Load all existing files
+    const files = await prisma.episodeFile.findMany({
+      select: { id: true, filepath: true, fileSize: true, dateModified: true, fileExists: true },
+    });
+    for (const file of files) {
+      this.fileCache.byPath.set(file.filepath, {
+        id: file.id,
+        fileSize: file.fileSize,
+        dateModified: file.dateModified,
+        fileExists: file.fileExists,
+      });
+    }
+
+    this.initialized = true;
+  }
+
+  /**
+   * Process a batch of items in a single transaction
+   */
+  async processBatch(items: BatchItem[]): Promise<BatchResult> {
+    const result: BatchResult = { filesAdded: 0, filesUpdated: 0, filesUnchanged: 0 };
+
+    await prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        const { parsed, file } = item;
+
+        // 1. Find or create show
+        const showMatchKey = showNameMatchKey(parsed.showName);
+        let showData = this.showCache.byMatchKey.get(showMatchKey);
+
+        if (!showData) {
+          // Create new show
+          const newShow = await tx.tVShow.create({
+            data: { title: parsed.showName, year: parsed.year },
+          });
+          showData = { id: newShow.id, title: newShow.title, year: newShow.year };
+          this.showCache.byMatchKey.set(showMatchKey, showData);
+        } else if (parsed.year && !showData.year) {
+          // Update year if we now have one
+          await tx.tVShow.update({
+            where: { id: showData.id },
+            data: { year: parsed.year },
+          });
+          showData.year = parsed.year;
+        }
+
+        // 2. Find or create season
+        const seasonKey = `${showData.id}-${parsed.seasonNumber}`;
+        let seasonId = this.seasonCache.byKey.get(seasonKey);
+
+        if (!seasonId) {
+          const newSeason = await tx.season.create({
+            data: { tvShowId: showData.id, seasonNumber: parsed.seasonNumber },
+          });
+          seasonId = newSeason.id;
+          this.seasonCache.byKey.set(seasonKey, seasonId);
+        }
+
+        // 3. Find or create episode
+        const episodeKey = `${seasonId}-${parsed.episodeNumber}`;
+        let episodeId = this.episodeCache.byKey.get(episodeKey);
+
+        if (!episodeId) {
+          const newEpisode = await tx.episode.create({
+            data: {
+              seasonId,
+              episodeNumber: parsed.episodeNumber,
+              title: parsed.episodeTitle,
+            },
+          });
+          episodeId = newEpisode.id;
+          this.episodeCache.byKey.set(episodeKey, episodeId);
+        } else if (parsed.episodeTitle) {
+          // Update title if we have one
+          await tx.episode.update({
+            where: { id: episodeId },
+            data: { title: parsed.episodeTitle },
+          });
+        }
+
+        // 4. Create or update file
+        const existingFile = this.fileCache.byPath.get(file.filepath);
+        const fileData = {
+          episodeId,
+          filepath: file.filepath,
+          filename: file.filename,
+          fileSize: file.fileSize,
+          dateModified: file.dateModified,
+          fileExists: true,
+          status: 'TO_CHECK' as const,
+          action: 'NOTHING' as const,
+          arrStatus: 'MONITORED' as const,
+        };
+
+        if (!existingFile) {
+          // Create new file
+          const newFile = await tx.episodeFile.create({ data: fileData });
+          this.fileCache.byPath.set(file.filepath, {
+            id: newFile.id,
+            fileSize: file.fileSize,
+            dateModified: file.dateModified,
+            fileExists: true,
+          });
+          result.filesAdded++;
+        } else {
+          // Check if file has changed
+          const hasChanged =
+            existingFile.fileSize !== file.fileSize ||
+            existingFile.dateModified.getTime() !== file.dateModified.getTime() ||
+            !existingFile.fileExists;
+
+          if (hasChanged) {
+            await tx.episodeFile.update({
+              where: { id: existingFile.id },
+              data: fileData,
+            });
+            existingFile.fileSize = file.fileSize;
+            existingFile.dateModified = file.dateModified;
+            existingFile.fileExists = true;
+            result.filesUpdated++;
+          } else {
+            result.filesUnchanged++;
+          }
+        }
+      }
+    });
+
+    return result;
+  }
 }
