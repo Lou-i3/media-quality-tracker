@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
+import { getStatusVariant } from "@/lib/status";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -20,19 +21,6 @@ export const dynamic = 'force-dynamic';
 
 interface Props {
   searchParams: Promise<{ q?: string; status?: string; view?: string }>;
-}
-
-function getStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
-  switch (status) {
-    case "GOOD":
-      return "default";
-    case "BAD":
-      return "destructive";
-    case "TO_CHECK":
-      return "secondary";
-    default:
-      return "outline";
-  }
 }
 
 export default async function TVShowsPage({ searchParams }: Props) {

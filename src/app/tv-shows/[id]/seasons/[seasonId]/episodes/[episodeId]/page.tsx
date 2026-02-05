@@ -1,30 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { formatFileSize, formatDuration } from "@/lib/format";
+import { getStatusVariant } from "@/lib/status";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, FileCheck, FileX, Clock, HardDrive } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ id: string; seasonId: string; episodeId: string }>;
-}
-
-function getStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
-  switch (status) {
-    case "GOOD":
-    case "WORKS":
-      return "default";
-    case "BAD":
-    case "FAILS":
-      return "destructive";
-    case "TO_CHECK":
-    case "NEEDS_TRANSCODING":
-      return "secondary";
-    default:
-      return "outline";
-  }
 }
 
 export default async function EpisodeDetailPage({ params }: Props) {
@@ -113,66 +99,177 @@ export default async function EpisodeDetailPage({ params }: Props) {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {episode.files.map((file) => (
               <Card key={file.id}>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg break-all">{file.filename}</CardTitle>
-                  <p className="text-sm text-muted-foreground break-all">{file.filepath}</p>
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg break-all">{file.filename}</CardTitle>
+                      <p className="text-sm text-muted-foreground break-all mt-1">{file.filepath}</p>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {file.fileExists ? (
+                        <Badge variant="outline" className="gap-1">
+                          <FileCheck className="h-3 w-3" />
+                          On Disk
+                        </Badge>
+                      ) : (
+                        <Badge variant="destructive" className="gap-1">
+                          <FileX className="h-3 w-3" />
+                          Missing
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
                 </CardHeader>
-                <CardContent>
-                  {/* Quality Info */}
+                <CardContent className="space-y-6">
+                  {/* File Info */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-3">File Information</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div className="bg-muted p-2 rounded">
+                        <p className="text-muted-foreground text-xs">Size</p>
+                        <p className="font-semibold">{formatFileSize(file.fileSize)}</p>
+                      </div>
+                      {file.container && (
+                        <div className="bg-muted p-2 rounded">
+                          <p className="text-muted-foreground text-xs">Container</p>
+                          <p className="font-semibold">{file.container.toUpperCase()}</p>
+                        </div>
+                      )}
+                      {file.duration && (
+                        <div className="bg-muted p-2 rounded">
+                          <p className="text-muted-foreground text-xs">Duration</p>
+                          <p className="font-semibold">{formatDuration(file.duration)}</p>
+                        </div>
+                      )}
+                      <div className="bg-muted p-2 rounded">
+                        <p className="text-muted-foreground text-xs">Modified</p>
+                        <p className="font-semibold text-xs">{file.dateModified.toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Video Quality */}
                   {(file.resolution || file.codec || file.bitrate || file.hdrType) && (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4 text-sm">
-                      {file.resolution && (
-                        <div className="bg-muted p-2 rounded">
-                          <p className="text-muted-foreground">Resolution</p>
-                          <p className="font-semibold">{file.resolution}</p>
-                        </div>
-                      )}
-                      {file.codec && (
-                        <div className="bg-muted p-2 rounded">
-                          <p className="text-muted-foreground">Codec</p>
-                          <p className="font-semibold">{file.codec}</p>
-                        </div>
-                      )}
-                      {file.bitrate && (
-                        <div className="bg-muted p-2 rounded">
-                          <p className="text-muted-foreground">Bitrate</p>
-                          <p className="font-semibold">{file.bitrate} kbps</p>
-                        </div>
-                      )}
-                      {file.hdrType && (
-                        <div className="bg-muted p-2 rounded">
-                          <p className="text-muted-foreground">HDR</p>
-                          <p className="font-semibold">{file.hdrType}</p>
-                        </div>
-                      )}
+                    <div>
+                      <h4 className="text-sm font-medium mb-3">Video Quality</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        {file.resolution && (
+                          <div className="bg-muted p-2 rounded">
+                            <p className="text-muted-foreground text-xs">Resolution</p>
+                            <p className="font-semibold">{file.resolution}</p>
+                          </div>
+                        )}
+                        {file.codec && (
+                          <div className="bg-muted p-2 rounded">
+                            <p className="text-muted-foreground text-xs">Codec</p>
+                            <p className="font-semibold">{file.codec}</p>
+                          </div>
+                        )}
+                        {file.bitrate && (
+                          <div className="bg-muted p-2 rounded">
+                            <p className="text-muted-foreground text-xs">Bitrate</p>
+                            <p className="font-semibold">{(file.bitrate / 1000).toFixed(1)} Mbps</p>
+                          </div>
+                        )}
+                        {file.hdrType && (
+                          <div className="bg-muted p-2 rounded">
+                            <p className="text-muted-foreground text-xs">HDR</p>
+                            <p className="font-semibold">{file.hdrType}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
-                  {/* Status and Metadata */}
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4 text-sm">
+                  {/* Audio */}
+                  {(file.audioFormat || file.audioLanguages) && (
                     <div>
-                      <p className="text-muted-foreground">Status</p>
-                      <Badge variant={getStatusVariant(file.status)} className="mt-1">
-                        {file.status}
-                      </Badge>
+                      <h4 className="text-sm font-medium mb-3">Audio</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                        {file.audioFormat && (
+                          <div className="bg-muted p-2 rounded">
+                            <p className="text-muted-foreground text-xs">Format</p>
+                            <p className="font-semibold">{file.audioFormat}</p>
+                          </div>
+                        )}
+                        {file.audioLanguages && (
+                          <div className="bg-muted p-2 rounded col-span-2">
+                            <p className="text-muted-foreground text-xs">Languages</p>
+                            <p className="font-semibold">{file.audioLanguages}</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
+                  )}
+
+                  {/* Subtitles */}
+                  {file.subtitleLanguages && (
                     <div>
-                      <p className="text-muted-foreground">Action</p>
-                      <p className="font-semibold">{file.action}</p>
+                      <h4 className="text-sm font-medium mb-3">Subtitles</h4>
+                      <div className="bg-muted p-2 rounded text-sm inline-block">
+                        <p className="text-muted-foreground text-xs">Languages</p>
+                        <p className="font-semibold">{file.subtitleLanguages}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground">Arr Status</p>
-                      <p className="font-semibold">{file.arrStatus}</p>
+                  )}
+
+                  {/* Status & Management */}
+                  <div>
+                    <h4 className="text-sm font-medium mb-3">Status & Management</h4>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                      <div>
+                        <p className="text-muted-foreground text-xs mb-1">Status</p>
+                        <Badge variant={getStatusVariant(file.status)}>
+                          {file.status}
+                        </Badge>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs mb-1">Action</p>
+                        <Badge variant="outline">{file.action}</Badge>
+                      </div>
+                      <div>
+                        <p className="text-muted-foreground text-xs mb-1">Arr Status</p>
+                        <Badge variant={file.arrStatus === 'MONITORED' ? 'default' : 'secondary'}>
+                          {file.arrStatus}
+                        </Badge>
+                      </div>
+                      {file.metadataSource && (
+                        <div>
+                          <p className="text-muted-foreground text-xs mb-1">Metadata Source</p>
+                          <Badge variant="outline">{file.metadataSource}</Badge>
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {/* Plex Integration */}
+                  {file.plexMatched && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-3">Plex Integration</h4>
+                      <Badge variant="default" className="gap-1">
+                        <HardDrive className="h-3 w-3" />
+                        Matched in Plex
+                      </Badge>
+                    </div>
+                  )}
+
+                  {/* Notes */}
+                  {file.notes && (
+                    <div>
+                      <h4 className="text-sm font-medium mb-2">Notes</h4>
+                      <p className="text-sm text-muted-foreground bg-muted p-3 rounded">
+                        {file.notes}
+                      </p>
+                    </div>
+                  )}
 
                   {/* Compatibility Tests */}
                   {file.compatibilityTests.length > 0 && (
                     <div>
-                      <p className="text-sm text-muted-foreground mb-2">Compatibility Tests</p>
+                      <h4 className="text-sm font-medium mb-3">Compatibility Tests</h4>
                       <div className="flex flex-wrap gap-2">
                         {file.compatibilityTests.map((test) => (
                           <Badge key={test.id} variant={getStatusVariant(test.status)}>
@@ -182,6 +279,15 @@ export default async function EpisodeDetailPage({ params }: Props) {
                       </div>
                     </div>
                   )}
+
+                  {/* Timestamps */}
+                  <div className="pt-3 border-t text-xs text-muted-foreground flex gap-4">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Added: {file.createdAt.toLocaleDateString()}
+                    </span>
+                    <span>Updated: {file.updatedAt.toLocaleDateString()}</span>
+                  </div>
                 </CardContent>
               </Card>
             ))}

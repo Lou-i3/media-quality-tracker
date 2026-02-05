@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getStatusVariant } from "@/lib/status";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight } from "lucide-react";
@@ -9,19 +10,6 @@ export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ id: string }>;
-}
-
-function getStatusVariant(status: string): "default" | "secondary" | "destructive" | "outline" {
-  switch (status) {
-    case "GOOD":
-      return "default";
-    case "BAD":
-      return "destructive";
-    case "TO_CHECK":
-      return "secondary";
-    default:
-      return "outline";
-  }
 }
 
 export default async function ShowDetailPage({ params }: Props) {
