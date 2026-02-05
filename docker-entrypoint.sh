@@ -45,7 +45,24 @@ fi
 
 # Ensure data directory exists and has correct permissions
 mkdir -p /app/data /app/logs
+
+# Fix ownership of data directory and all contents (including existing db files)
+echo "Setting ownership of /app/data to $PUID:$PGID..."
 chown -R "$PUID:$PGID" /app/data /app/logs
+chmod 755 /app/data /app/logs
+
+# Debug: show what's in the data directory
+ls -la /app/data/ 2>/dev/null || true
+
+# Verify write access
+if ! su-exec "$APP_USER" touch /app/data/.write-test 2>/dev/null; then
+  echo "ERROR: Cannot write to /app/data directory"
+  echo "Please ensure the mounted volume has correct permissions for UID=$PUID GID=$PGID"
+  echo "Try: chown -R $PUID:$PGID /path/to/your/data/folder on the host"
+  exit 1
+fi
+rm -f /app/data/.write-test
+echo "Data directory is writable"
 
 # Run migrations as the app user
 echo "Running database migrations..."
