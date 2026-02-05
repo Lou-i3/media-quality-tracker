@@ -6,7 +6,7 @@ import { prisma } from '@/lib/prisma';
 import { ScanControls } from './scan-controls';
 import { ScanHistoryTable } from './scan-history-table';
 
-export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 export default async function ScansPage() {
   const scans = await prisma.scanHistory.findMany({

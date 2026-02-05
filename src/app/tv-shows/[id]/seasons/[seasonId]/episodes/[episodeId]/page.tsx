@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight } from "lucide-react";
 
-export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ id: string; seasonId: string; episodeId: string }>;

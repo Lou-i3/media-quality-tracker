@@ -16,7 +16,7 @@ import { TVShowsToolbar } from "./toolbar";
 import { TVShowDialog } from "./show-dialog";
 import { Status } from "@/generated/prisma/client";
 
-export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 interface Props {
   searchParams: Promise<{ q?: string; status?: string; view?: string }>;

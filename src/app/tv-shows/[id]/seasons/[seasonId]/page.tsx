@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/table";
 import { ChevronRight } from "lucide-react";
 
-export const revalidate = 0;
+export const dynamic = 'force-dynamic';
 
 interface Props {
   params: Promise<{ id: string; seasonId: string }>;
