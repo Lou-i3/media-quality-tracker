@@ -1,5 +1,8 @@
 # Media Quality Tracker
 
+[![GitHub](https://img.shields.io/github/license/Lou-i3/media-quality-tracker)](https://github.com/Lou-i3/media-quality-tracker/blob/main/LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
+
 A Next.js web application for tracking media file quality, playback compatibility, and maintenance status across a Plex media library.
 
 ## Features
