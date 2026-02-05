@@ -12,7 +12,9 @@ A Next.js web application for tracking media file quality, playback compatibilit
 - **Quality Tracking** - Track codec, resolution, bitrate, HDR, audio formats
 - **Status Management** - Mark files as TO_CHECK, GOOD, BAD, or DELETED
 - **Real-time Progress** - Live scan progress with Server-Sent Events
-- **Dark Mode** - Automatic dark mode based on system preference
+- **TV Show Management** - Full CRUD operations with search, filter, and grid/table views
+- **Sidebar Navigation** - Easy navigation between Dashboard, TV Shows, Scans, and Settings
+- **Dark Mode** - Full dark mode UI with system preference support
 
 ## Quick Start
 
@@ -85,13 +87,19 @@ services:
 ```
 src/
 ├── app/
-│   ├── page.tsx                    # Home page
+│   ├── page.tsx                    # Dashboard
+│   ├── layout.tsx                  # Root layout with sidebar
 │   ├── scans/
 │   │   └── page.tsx                # Scanner UI
 │   ├── tv-shows/
-│   │   ├── page.tsx                # TV Shows list
+│   │   ├── page.tsx                # TV Shows list (grid/table)
+│   │   ├── toolbar.tsx             # Search, filter, view toggle
+│   │   ├── show-dialog.tsx         # Create/Edit TV show dialog
 │   │   └── [id]/                   # Show → Season → Episode pages
 │   └── api/
+│       ├── tv-shows/               # TV Shows CRUD
+│       │   ├── route.ts            # POST: create
+│       │   └── [id]/route.ts       # PATCH: update, DELETE: delete
 │       └── scan/                   # Scanner API routes
 │           ├── route.ts            # POST: start, GET: list
 │           └── [id]/
@@ -108,6 +116,7 @@ src/
 │       ├── progress.ts             # Progress tracking
 │       └── scan.ts                 # Orchestrator
 ├── components/
+│   ├── sidebar.tsx                 # Navigation sidebar
 │   └── ui/                         # shadcn/ui components
 └── generated/
     └── prisma/                     # Generated Prisma types
@@ -118,6 +127,14 @@ prisma/
 ```
 
 ## API Routes
+
+### TV Shows
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/tv-shows` | Create a new TV show |
+| `PATCH` | `/api/tv-shows/[id]` | Update a TV show |
+| `DELETE` | `/api/tv-shows/[id]` | Delete a TV show |
 
 ### Scanner
 
@@ -190,6 +207,10 @@ npx prisma generate  # Generate client
 - [x] Plex-style filename parsing
 - [x] shadcn/ui components
 - [x] Docker deployment
+- [x] Sidebar navigation
+- [x] TV Shows CRUD (create, edit, delete)
+- [x] Search & filter toolbar
+- [x] Grid/Table view toggle
 - [ ] ffprobe metadata extraction
 - [ ] Movies support
 - [ ] Plex database sync

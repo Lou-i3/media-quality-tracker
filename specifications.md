@@ -4,7 +4,7 @@ Overview
 A Next.js-based web application for tracking media file quality, playback compatibility, and maintenance status across a Plex media library. Deployed as a Docker container on Synology NAS with direct filesystem and Plex database access.
 Tech Stack
 
-Framework: Next.js 14+ (App Router, TypeScript) 
+Framework: Next.js 16 (App Router, TypeScript) 
 Database: SQLite (with migration path to Postgres) 
 ORM: Prisma 
 UI Components: shadcn/ui (built on Radix UI + Tailwind) 
