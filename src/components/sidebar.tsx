@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Home, Tv, ScanSearch, Settings } from 'lucide-react';
+import { Home, Tv, ScanSearch, Settings, Github } from 'lucide-react';
+import packageJson from '../../package.json';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
@@ -51,7 +52,17 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border space-y-1">
+        <a
+          href="https://github.com/Lou-i3/media-quality-tracker"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+        >
+          <Github className="w-5 h-5" />
+          <span className="flex-1">GitHub</span>
+          <span className="text-xs">v{packageJson.version}</span>
+        </a>
         <Link
           href="/settings"
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
