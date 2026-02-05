@@ -66,9 +66,9 @@ echo "Data directory is writable"
 
 # Run migrations as the app user
 echo "Running database migrations..."
-su-exec "$APP_USER" npx prisma migrate deploy
+su-exec "$APP_USER" node node_modules/prisma/build/index.js migrate deploy
 
-# Start the application as the app user
+# Start the application as the app user (standalone mode)
 echo ""
 echo "Starting Next.js server on port ${PORT:-3000}..."
-exec su-exec "$APP_USER" npm start
+exec su-exec "$APP_USER" node server.js

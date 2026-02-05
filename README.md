@@ -8,12 +8,15 @@ A Next.js web application for tracking media file quality, playback compatibilit
 ## Features
 
 - **Library Scanner** - Scan TV show directories to discover and catalog media files
+- **Batch Processing** - Optimized database operations for fast scanning of large libraries
 - **Plex-style Parsing** - Automatically parse `Show Name (Year)/Season 01/S01E05.mkv` naming
+- **Smart Show Detection** - Extracts show names from folder structure for reliable matching
 - **Quality Tracking** - Track codec, resolution, bitrate, HDR, audio formats
 - **Status Management** - Mark files as TO_CHECK, GOOD, BAD, or DELETED
-- **Real-time Progress** - Live scan progress with Server-Sent Events
+- **Real-time Progress** - Live scan progress with percentage and file count
 - **TV Show Management** - Full CRUD operations with search, filter, and grid/table views
-- **Sidebar Navigation** - Easy navigation between Dashboard, TV Shows, Scans, and Settings
+- **Settings** - Configurable date format (EU/US/ISO) stored in database
+- **Sidebar Navigation** - Easy navigation with version display and GitHub link
 - **Dark Mode** - Full dark mode UI with system preference support
 
 ## Quick Start
@@ -93,12 +96,15 @@ src/
 │   ├── layout.tsx                  # Root layout with sidebar
 │   ├── scans/
 │   │   └── page.tsx                # Scanner UI
+│   ├── settings/
+│   │   └── page.tsx                # Settings page
 │   ├── tv-shows/
 │   │   ├── page.tsx                # TV Shows list (grid/table)
 │   │   ├── toolbar.tsx             # Search, filter, view toggle
 │   │   ├── show-dialog.tsx         # Create/Edit TV show dialog
 │   │   └── [id]/                   # Show → Season → Episode pages
 │   └── api/
+│       ├── settings/route.ts       # Settings API
 │       ├── tv-shows/               # TV Shows CRUD
 │       │   ├── route.ts            # POST: create
 │       │   └── [id]/route.ts       # PATCH: update, DELETE: delete
@@ -110,11 +116,15 @@ src/
 │               └── progress/       # GET: SSE stream
 ├── lib/
 │   ├── prisma.ts                   # Prisma client
+│   ├── settings.ts                 # Settings utilities (server)
+│   ├── settings-shared.ts          # Settings types (client-safe)
+│   ├── format.ts                   # Formatting utilities
+│   ├── status.ts                   # Status badge helpers
 │   └── scanner/                    # Scanner service
 │       ├── config.ts               # Environment config
 │       ├── filesystem.ts           # File discovery
 │       ├── parser.ts               # Filename parsing
-│       ├── database.ts             # DB operations
+│       ├── database.ts             # DB operations (batch processing)
 │       ├── progress.ts             # Progress tracking
 │       └── scan.ts                 # Orchestrator
 ├── components/
@@ -137,6 +147,13 @@ prisma/
 | `POST` | `/api/tv-shows` | Create a new TV show |
 | `PATCH` | `/api/tv-shows/[id]` | Update a TV show |
 | `DELETE` | `/api/tv-shows/[id]` | Delete a TV show |
+
+### Settings
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/settings` | Get current settings |
+| `PATCH` | `/api/settings` | Update settings |
 
 ### Scanner
 
@@ -167,6 +184,7 @@ prisma/
 | `EpisodeFile` | Media file with quality metadata |
 | `ScanHistory` | Scan operation logs |
 | `CompatibilityTest` | Playback test results |
+| `Settings` | Application settings (date format, etc.) |
 
 ## Filename Parsing
 
@@ -185,10 +203,10 @@ Breaking Bad 1x01.mkv
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 (App Router, TypeScript)
+- **Framework**: Next.js 16 (App Router, TypeScript, standalone output)
 - **Database**: SQLite with Prisma ORM
 - **UI**: shadcn/ui (Radix + Tailwind CSS)
-- **Deployment**: Docker with multi-stage build
+- **Deployment**: Docker with multi-stage build (~150MB image)
 
 ## Development Commands
 
@@ -206,13 +224,16 @@ npx prisma generate  # Generate client
 
 - [x] TV Show hierarchy browser
 - [x] Library scanner with progress tracking
+- [x] Batch processing for optimized scans
 - [x] Plex-style filename parsing
+- [x] Smart folder-based show detection
 - [x] shadcn/ui components
 - [x] Docker deployment
-- [x] Sidebar navigation
+- [x] Sidebar navigation with version display
 - [x] TV Shows CRUD (create, edit, delete)
 - [x] Search & filter toolbar
 - [x] Grid/Table view toggle
+- [x] Date format settings (EU/US/ISO)
 - [ ] ffprobe metadata extraction
 - [ ] Movies support
 - [ ] Plex database sync
