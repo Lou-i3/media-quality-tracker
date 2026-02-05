@@ -35,6 +35,13 @@ import {
 /** Track cancelled scans */
 const cancelledScans = new Set<number>();
 
+/** Yield to event loop to keep app responsive */
+const yieldToEventLoop = (): Promise<void> =>
+  new Promise((resolve) => setImmediate(resolve));
+
+/** How often to yield (every N files) */
+const YIELD_INTERVAL = 10;
+
 /**
  * Start a new scan operation
  *
@@ -88,6 +95,7 @@ async function runScan(
 
     // Scan TV shows directory
     if (config.tvShowsPath) {
+      let discoveryCount = 0;
       for await (const file of discoverFiles(config.tvShowsPath)) {
         // Check for cancellation
         if (cancelledScans.has(scanId)) {
@@ -96,11 +104,17 @@ async function runScan(
 
         files.push(file);
         existingFilepaths.add(file.filepath);
+
+        // Yield periodically to keep app responsive
+        if (++discoveryCount % YIELD_INTERVAL === 0) {
+          await yieldToEventLoop();
+        }
       }
     }
 
     // Scan movies directory
     if (config.moviesPath) {
+      let discoveryCount = 0;
       for await (const file of discoverFiles(config.moviesPath)) {
         // Check for cancellation
         if (cancelledScans.has(scanId)) {
@@ -109,6 +123,11 @@ async function runScan(
 
         files.push(file);
         existingFilepaths.add(file.filepath);
+
+        // Yield periodically to keep app responsive
+        if (++discoveryCount % YIELD_INTERVAL === 0) {
+          await yieldToEventLoop();
+        }
       }
     }
 
@@ -117,10 +136,16 @@ async function runScan(
     // Phase 2 & 3: Parse and save to database
     tracker.setPhase('parsing');
 
+    let processedCount = 0;
     for (const file of files) {
       // Check for cancellation
       if (cancelledScans.has(scanId)) {
         throw new Error('Scan cancelled by user');
+      }
+
+      // Yield periodically to keep app responsive
+      if (++processedCount % YIELD_INTERVAL === 0) {
+        await yieldToEventLoop();
       }
 
       try {
