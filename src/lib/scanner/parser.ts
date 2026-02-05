@@ -13,6 +13,7 @@ import type { ParsedFilename } from './types';
 /**
  * Normalize a show name for consistent matching
  * - Replaces dots/underscores with spaces
+ * - Removes trailing/leading dashes and hyphens
  * - Collapses multiple spaces
  * - Trims whitespace
  */
@@ -21,6 +22,7 @@ export function normalizeShowName(name: string): string {
     .replace(/\./g, ' ')
     .replace(/_/g, ' ')
     .replace(/\s+/g, ' ')
+    .replace(/^[\s\-–—]+|[\s\-–—]+$/g, '') // Remove leading/trailing dashes and spaces
     .trim();
 }
 
@@ -83,6 +85,29 @@ function parsePlexStyle(filepath: string): ParsedFilename | null {
 }
 
 /**
+ * Try to extract show name from folder structure
+ * Looks for "Show Name (Year)" folder above "Season XX" folder
+ */
+function getShowNameFromFolder(filepath: string): { name: string; year?: number } | null {
+  const parts = filepath.split(sep);
+
+  // Find "Season XX" directory
+  const seasonIdx = parts.findIndex((p) => /^Season\s+\d+$/i.test(p));
+  if (seasonIdx > 0) {
+    const showDir = parts[seasonIdx - 1];
+    const showMatch = showDir.match(/^(.+?)(?:\s*\((\d{4})\))?$/);
+    if (showMatch) {
+      return {
+        name: normalizeShowName(showMatch[1]),
+        year: showMatch[2] ? parseInt(showMatch[2], 10) : undefined,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
  * Try to parse SxxExx pattern from filename
  * Examples:
  * - Show.Name.S01E05.Episode.Title.1080p.mkv
@@ -100,7 +125,19 @@ function parseSxxExx(filepath: string): ParsedFilename | null {
   const seasonNumber = parseInt(match[1], 10);
   const episodeNumber = parseInt(match[2], 10);
 
-  // Extract show name (everything before the SxxExx pattern)
+  // First, try to get show name from folder structure (most reliable)
+  const folderInfo = getShowNameFromFolder(filepath);
+  if (folderInfo) {
+    return {
+      showName: folderInfo.name,
+      year: folderInfo.year,
+      seasonNumber,
+      episodeNumber,
+      episodeTitle: extractEpisodeTitle(filename),
+    };
+  }
+
+  // Fall back to extracting from filename (everything before the SxxExx pattern)
   const showNamePart = filename.substring(0, match.index);
   const showName = normalizeShowName(showNamePart);
 
