@@ -104,6 +104,23 @@ export function ScanControls() {
     ? Math.round((progress.processedFiles / progress.totalFiles) * 100)
     : 0;
 
+  const getPhaseLabel = (phase: string): string => {
+    switch (phase) {
+      case 'discovering':
+        return 'Discovering files';
+      case 'parsing':
+        return 'Parsing filenames';
+      case 'saving':
+        return 'Saving to database';
+      case 'cleanup':
+        return 'Cleaning up';
+      case 'complete':
+        return 'Complete';
+      default:
+        return phase.replace('_', ' ');
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -122,8 +139,10 @@ export function ScanControls() {
         {isScanning && progress ? (
           <div className="space-y-4">
             <div className="flex items-center justify-between text-sm">
-              <span className="capitalize">{progress.phase.replace('_', ' ')}...</span>
-              <span>{progress.processedFiles} / {progress.totalFiles} files</span>
+              <span>{getPhaseLabel(progress.phase)}...</span>
+              <span className="font-medium">
+                {progressPercent}% ({progress.processedFiles} / {progress.totalFiles} files)
+              </span>
             </div>
 
             <Progress value={progressPercent} className="h-2" />
