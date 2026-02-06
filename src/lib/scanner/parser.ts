@@ -136,7 +136,7 @@ function parseSxxExx(filepath: string): ParsedFilename | null {
   const filename = basename(filepath);
 
   // Match SxxExx pattern (case insensitive)
-  const match = filename.match(/[sS](\d{1,2})[eE](\d{1,2})/);
+  const match = filename.match(/[sS](\d{1,2})[eE](\d{1,3})/);
   if (!match) {
     return null;
   }
@@ -222,13 +222,13 @@ function parseXxYY(filepath: string): ParsedFilename | null {
  */
 function extractEpisodeNumber(filename: string): number | null {
   // Try SxxExx first
-  const sxxexx = filename.match(/[sS]\d{1,2}[eE](\d{1,2})/);
+  const sxxexx = filename.match(/[sS]\d{1,2}[eE](\d{1,3})/);
   if (sxxexx) {
     return parseInt(sxxexx[1], 10);
   }
 
   // Try standalone E## (e.g., "E05")
-  const eOnly = filename.match(/[eE](\d{1,2})/);
+  const eOnly = filename.match(/[eE](\d{1,3})/);
   if (eOnly) {
     return parseInt(eOnly[1], 10);
   }
@@ -258,7 +258,7 @@ function extractEpisodeTitle(filename: string): string | undefined {
 
   // Try "- Episode Title" pattern after SxxExx
   const dashPattern = nameWithoutExt.match(
-    /[sS]\d{1,2}[eE]\d{1,2}\s*-\s*(.+?)(?:\s*-\s*|\s*\[|\s*$)/
+    /[sS]\d{1,2}[eE]\d{1,3}\s*-\s*(.+?)(?:\s*-\s*|\s*\[|\s*$)/
   );
   if (dashPattern && dashPattern[1]) {
     const title = dashPattern[1].trim();
@@ -270,7 +270,7 @@ function extractEpisodeTitle(filename: string): string | undefined {
 
   // Try extracting from dot-separated format after SxxExx
   const dotPattern = nameWithoutExt.match(
-    /[sS]\d{1,2}[eE]\d{1,2}\.([A-Za-z][A-Za-z0-9.]+?)\.(?:\d{3,4}p|HDTV|WEB|BluRay|x264|x265|HEVC)/i
+    /[sS]\d{1,2}[eE]\d{1,3}\.([A-Za-z][A-Za-z0-9.]+?)\.(?:\d{3,4}p|HDTV|WEB|BluRay|x264|x265|HEVC)/i
   );
   if (dotPattern && dotPattern[1]) {
     return normalizeShowName(dotPattern[1]);
