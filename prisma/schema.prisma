@@ -60,17 +60,31 @@ model TVShow {
   title     String
   year      Int?
   tvdbId    String?  @unique
-  tmdbId    String?  @unique
+  tmdbId    Int?     @unique
   plexId    String?  @unique
   status    Status   @default(TO_CHECK)
   notes     String?
-  
+
+  // TMDB Metadata
+  posterPath       String?
+  backdropPath     String?
+  description      String?
+  firstAirDate     DateTime?
+  voteAverage      Float?
+  genres           String?   // JSON array: ["Drama", "Sci-Fi"]
+  networkStatus    String?   // "Returning Series", "Ended", "Canceled"
+  originalLanguage String?   // ISO 639-1 code: "en", "ja", etc.
+  tmdbSeasonCount  Int?
+  tmdbEpisodeCount Int?
+  lastMetadataSync DateTime?
+
   seasons   Season[]
-  
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@index([title])
+  @@index([tmdbId])
 }
 
 model Season {
@@ -80,12 +94,18 @@ model Season {
   seasonNumber Int
   status       Status   @default(TO_CHECK)
   notes        String?
-  
+
+  // TMDB Metadata
+  tmdbSeasonId Int?
+  posterPath   String?
+  description  String?
+  airDate      DateTime?
+
   episodes     Episode[]
-  
+
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
+
   @@unique([tvShowId, seasonNumber])
   @@index([tvShowId])
 }
@@ -98,12 +118,20 @@ model Episode {
   title         String?
   status        Status   @default(TO_CHECK)
   notes         String?
-  
+
+  // TMDB Metadata
+  tmdbEpisodeId Int?
+  stillPath     String?   // Episode screenshot
+  description   String?
+  airDate       DateTime?
+  runtime       Int?      // Duration in minutes
+  voteAverage   Float?
+
   files         EpisodeFile[]
-  
+
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
-  
+
   @@unique([seasonId, episodeNumber])
   @@index([seasonId])
 }

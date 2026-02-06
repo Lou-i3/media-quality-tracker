@@ -1,0 +1,154 @@
+/**
+ * Integrations Hub page
+ * Lists all available integrations with their status
+ */
+
+import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { isTmdbConfigured } from '@/lib/tmdb';
+import { prisma } from '@/lib/prisma';
+
+/** Integration definition */
+interface Integration {
+  id: string;
+  name: string;
+  description: string;
+  icon: React.ReactNode;
+  href: string;
+  configured: boolean;
+  stats?: string;
+  comingSoon?: boolean;
+}
+
+/** TMDB logo - simplified green gradient badge */
+function TmdbLogo({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <rect x="2" y="4" width="20" height="16" rx="2" fill="url(#tmdb-gradient)" />
+      <text x="12" y="14" textAnchor="middle" fill="white" fontSize="6" fontWeight="bold" fontFamily="sans-serif">
+        TMDB
+      </text>
+      <defs>
+        <linearGradient id="tmdb-gradient" x1="2" y1="4" x2="22" y2="20">
+          <stop stopColor="#90CEA1" />
+          <stop offset="1" stopColor="#01B4E4" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}
+
+async function getIntegrations(): Promise<Integration[]> {
+  const tmdbConfigured = isTmdbConfigured();
+
+  let tmdbStats: string | undefined;
+  if (tmdbConfigured) {
+    const [total, matched] = await Promise.all([
+      prisma.tVShow.count(),
+      prisma.tVShow.count({ where: { tmdbId: { not: null } } }),
+    ]);
+    if (total > 0) {
+      tmdbStats = `${matched}/${total} shows matched`;
+    }
+  }
+
+  return [
+    {
+      id: 'tmdb',
+      name: 'TMDB',
+      description: 'Enrich your library with metadata, posters, and descriptions from The Movie Database.',
+      icon: <TmdbLogo className="size-8" />,
+      href: '/integrations/tmdb',
+      configured: tmdbConfigured,
+      stats: tmdbStats,
+    },
+    {
+      id: 'plex',
+      name: 'Plex',
+      description: 'Sync metadata and watch status from your Plex Media Server database.',
+      icon: (
+        <svg className="size-8" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M11.643 0L2.805 24H12.357L21.195 0H11.643Z" />
+        </svg>
+      ),
+      href: '/integrations/plex',
+      configured: false,
+      comingSoon: true,
+    },
+    {
+      id: 'sonarr',
+      name: 'Sonarr',
+      description: 'Sync TV show monitoring status and trigger downloads for missing episodes.',
+      icon: (
+        <svg className="size-8" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm0 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12 6.477 2 12 2zm0 3a7 7 0 100 14 7 7 0 000-14z" />
+        </svg>
+      ),
+      href: '/integrations/sonarr',
+      configured: false,
+      comingSoon: true,
+    },
+  ];
+}
+
+export default async function IntegrationsPage() {
+  const integrations = await getIntegrations();
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold">Integrations</h1>
+        <p className="text-muted-foreground">
+          Connect external services to enrich your library with metadata and automate workflows.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {integrations.map((integration) => (
+          <IntegrationCard key={integration.id} integration={integration} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function IntegrationCard({ integration }: { integration: Integration }) {
+  const content = (
+    <Card className={integration.comingSoon ? 'opacity-60' : 'hover:border-primary/50 transition-colors'}>
+      <CardHeader className="flex flex-row items-center gap-4 space-y-0">
+        <div className="flex size-12 items-center justify-center rounded-lg bg-muted">
+          {integration.icon}
+        </div>
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <CardTitle className="text-lg">{integration.name}</CardTitle>
+            {integration.comingSoon ? (
+              <Badge variant="secondary">Coming Soon</Badge>
+            ) : integration.configured ? (
+              <Badge variant="default" className="bg-green-600">Connected</Badge>
+            ) : (
+              <Badge variant="outline">Not Configured</Badge>
+            )}
+          </div>
+          {integration.stats && (
+            <p className="text-sm text-muted-foreground">{integration.stats}</p>
+          )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <CardDescription>{integration.description}</CardDescription>
+      </CardContent>
+    </Card>
+  );
+
+  if (integration.comingSoon) {
+    return content;
+  }
+
+  return (
+    <Link href={integration.href} className="block">
+      {content}
+    </Link>
+  );
+}

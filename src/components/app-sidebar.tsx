@@ -7,7 +7,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Tv, ScanSearch, Settings, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { Home, Tv, ScanSearch, Plug, Settings, PanelLeftClose, PanelLeft, ChevronRight, Film } from 'lucide-react';
 import packageJson from '../../package.json';
 
 import {
@@ -18,14 +18,26 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarSeparator,
   useSidebar,
 } from '@/components/ui/sidebar';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'TV Shows', href: '/tv-shows', icon: Tv },
   { name: 'Scans', href: '/scans', icon: ScanSearch },
+];
+
+const integrationItems = [
+  { name: 'TMDB', href: '/integrations/tmdb', icon: Film },
 ];
 
 export function AppSidebar() {
@@ -69,6 +81,47 @@ export function AppSidebar() {
               </SidebarMenuItem>
             );
           })}
+
+          {/* Integrations with submenu */}
+          <Collapsible
+            asChild
+            defaultOpen={pathname.startsWith('/integrations')}
+            className="group/collapsible"
+          >
+            <SidebarMenuItem>
+              <CollapsibleTrigger asChild>
+                <SidebarMenuButton
+                  isActive={pathname.startsWith('/integrations')}
+                  tooltip="Integrations"
+                >
+                  <Plug />
+                  <span>Integrations</span>
+                  <ChevronRight className="ml-auto size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                </SidebarMenuButton>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <SidebarMenuSub>
+                  {integrationItems.map((item) => (
+                    <SidebarMenuSubItem key={item.name}>
+                      <SidebarMenuSubButton asChild isActive={pathname === item.href}>
+                        <Link href={item.href}>
+                          <item.icon className="size-4" />
+                          <span>{item.name}</span>
+                        </Link>
+                      </SidebarMenuSubButton>
+                    </SidebarMenuSubItem>
+                  ))}
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton asChild isActive={pathname === '/integrations'}>
+                      <Link href="/integrations">
+                        <span className="text-muted-foreground">Other Integrations</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
+              </CollapsibleContent>
+            </SidebarMenuItem>
+          </Collapsible>
         </SidebarMenu>
       </SidebarContent>
 
