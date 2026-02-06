@@ -16,7 +16,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
 
     const body = await request.json();
-    const { title, folderName, year, status, notes, description } = body;
+    const { title, folderName, year, status, notes, description, posterPath, backdropPath } = body;
 
     const updateData: {
       title?: string;
@@ -25,6 +25,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       status?: Status;
       notes?: string | null;
       description?: string | null;
+      posterPath?: string | null;
+      backdropPath?: string | null;
     } = {};
 
     if (title !== undefined) {
@@ -55,6 +57,14 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
     if (description !== undefined) {
       updateData.description = description || null;
+    }
+
+    if (posterPath !== undefined) {
+      updateData.posterPath = posterPath || null;
+    }
+
+    if (backdropPath !== undefined) {
+      updateData.backdropPath = backdropPath || null;
     }
 
     const show = await prisma.tVShow.update({

@@ -21,7 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, ImageIcon } from 'lucide-react';
+import { getPosterUrl, getBackdropUrl } from '@/lib/tmdb/images';
 
 interface TVShow {
   id: number;
@@ -31,6 +32,8 @@ interface TVShow {
   status: string;
   notes: string | null;
   description?: string | null;
+  posterPath?: string | null;
+  backdropPath?: string | null;
 }
 
 interface TVShowDialogProps {
@@ -61,6 +64,8 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
     status: 'TO_CHECK',
     notes: '',
     description: '',
+    posterPath: '',
+    backdropPath: '',
   });
 
   const isOpen = isControlled ? open : internalOpen;
@@ -76,6 +81,8 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
         status: show?.status ?? 'TO_CHECK',
         notes: show?.notes ?? '',
         description: show?.description ?? '',
+        posterPath: show?.posterPath ?? '',
+        backdropPath: show?.backdropPath ?? '',
       });
     }
   }, [isOpen, show]);
@@ -92,6 +99,8 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
         status: formData.status,
         notes: formData.notes || null,
         description: formData.description || null,
+        posterPath: formData.posterPath || null,
+        backdropPath: formData.backdropPath || null,
       };
 
       const response = await fetch(
@@ -263,6 +272,72 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
                 placeholder="Personal notes..."
               />
             </div>
+            {isEdit && (
+              <>
+                <div className="grid gap-2">
+                  <label htmlFor="dialog-poster" className="text-sm font-medium">
+                    Poster Path
+                  </label>
+                  <div className="flex gap-3">
+                    {formData.posterPath ? (
+                      <div className="w-16 h-24 rounded bg-muted overflow-hidden flex-shrink-0">
+                        <img
+                          src={getPosterUrl(formData.posterPath, 'w154') || ''}
+                          alt="Poster preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-16 h-24 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                        <ImageIcon className="size-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <Input
+                        id="dialog-poster"
+                        value={formData.posterPath}
+                        onChange={(e) => setFormData({ ...formData, posterPath: e.target.value })}
+                        placeholder="/abc123.jpg"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        TMDB poster path (e.g., /abc123.jpg)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid gap-2">
+                  <label htmlFor="dialog-backdrop" className="text-sm font-medium">
+                    Backdrop Path
+                  </label>
+                  <div className="flex gap-3">
+                    {formData.backdropPath ? (
+                      <div className="w-24 h-14 rounded bg-muted overflow-hidden flex-shrink-0">
+                        <img
+                          src={getBackdropUrl(formData.backdropPath, 'w300') || ''}
+                          alt="Backdrop preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-24 h-14 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                        <ImageIcon className="size-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <Input
+                        id="dialog-backdrop"
+                        value={formData.backdropPath}
+                        onChange={(e) => setFormData({ ...formData, backdropPath: e.target.value })}
+                        placeholder="/xyz789.jpg"
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        TMDB backdrop path (e.g., /xyz789.jpg)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter className={isEdit ? 'flex justify-between sm:justify-between' : ''}>
             {isEdit && (

@@ -106,6 +106,8 @@ export default async function ShowDetailPage({ params }: Props) {
                   status: show.status,
                   notes: show.notes,
                   description: show.description,
+                  posterPath: show.posterPath,
+                  backdropPath: show.backdropPath,
                 }} />
                 <TmdbActions
                   showId={show.id}

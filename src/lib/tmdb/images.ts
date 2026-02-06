@@ -1,9 +1,12 @@
 /**
  * TMDB image URL helpers
  * Builds full URLs from TMDB image paths with size variants
+ *
+ * Note: This file is client-safe and doesn't import server-side dependencies
  */
 
-import { TMDB_CONFIG } from './config';
+/** TMDB image CDN base URL (constant, never changes) */
+const TMDB_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
 /** Available poster sizes */
 export type PosterSize = 'w92' | 'w154' | 'w185' | 'w342' | 'w500' | 'w780' | 'original';
@@ -22,7 +25,7 @@ export type StillSize = 'w92' | 'w185' | 'w300' | 'original';
  */
 export function getPosterUrl(path: string | null | undefined, size: PosterSize = 'w342'): string | null {
   if (!path) return null;
-  return `${TMDB_CONFIG.imageBaseUrl}/${size}${path}`;
+  return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
 }
 
 /**
@@ -33,7 +36,7 @@ export function getPosterUrl(path: string | null | undefined, size: PosterSize =
  */
 export function getBackdropUrl(path: string | null | undefined, size: BackdropSize = 'w1280'): string | null {
   if (!path) return null;
-  return `${TMDB_CONFIG.imageBaseUrl}/${size}${path}`;
+  return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
 }
 
 /**
@@ -44,5 +47,5 @@ export function getBackdropUrl(path: string | null | undefined, size: BackdropSi
  */
 export function getStillUrl(path: string | null | undefined, size: StillSize = 'w300'): string | null {
   if (!path) return null;
-  return `${TMDB_CONFIG.imageBaseUrl}/${size}${path}`;
+  return `${TMDB_IMAGE_BASE_URL}/${size}${path}`;
 }

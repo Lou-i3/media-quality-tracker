@@ -18,6 +18,8 @@ interface ShowEditButtonProps {
     status: string;
     notes: string | null;
     description: string | null;
+    posterPath: string | null;
+    backdropPath: string | null;
   };
 }
 
