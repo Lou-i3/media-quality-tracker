@@ -276,7 +276,7 @@ export interface ImportEpisodeItem {
   description: string | null;
   runtime: number | null;
   voteAverage: number | null;
-  status: 'MISSING' | 'UNWANTED';
+  monitorStatus: 'WANTED' | 'UNWANTED';
 }
 
 /** Season data for import request */

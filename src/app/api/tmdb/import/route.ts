@@ -105,7 +105,7 @@ export async function POST(request: Request) {
               airDate: episodeData.airDate ? new Date(episodeData.airDate) : null,
               runtime: episodeData.runtime,
               voteAverage: episodeData.voteAverage,
-              status: episodeData.status,
+              monitorStatus: episodeData.monitorStatus,
             },
             update: {
               title: episodeData.title,
@@ -115,8 +115,8 @@ export async function POST(request: Request) {
               airDate: episodeData.airDate ? new Date(episodeData.airDate) : null,
               runtime: episodeData.runtime,
               voteAverage: episodeData.voteAverage,
-              // Don't override status if episode already exists (user may have set it)
-              ...(existingEpisode ? {} : { status: episodeData.status }),
+              // Don't override monitorStatus if episode already exists (user may have set it)
+              ...(existingEpisode ? {} : { monitorStatus: episodeData.monitorStatus }),
             },
           });
 

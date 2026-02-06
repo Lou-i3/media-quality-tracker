@@ -14,7 +14,10 @@ A Next.js web application for tracking media file quality, playback compatibilit
 - **Smart Show Detection** - Extracts show names from folder structure for reliable matching
 - **Folder-based Matching** - Preserves original folder names to prevent duplicates when titles are customized
 - **Quality Tracking** - Track codec, resolution, bitrate, HDR, audio formats
-- **Status Management** - Mark files as TO_CHECK, GOOD, BAD, or DELETED
+- **Two-Dimensional Status System** - Separate monitoring intent from quality state
+  - Monitor Status: Wanted/Unwanted with cascade updates to children
+  - Quality Status: Computed from files (Unverified/OK/Broken/Missing)
+  - Clickable status badges with dropdown selectors
 - **Real-time Progress** - Live scan progress with percentage and file count
 - **TV Show Management** - Full CRUD operations with search, filter, and grid/table views
   - Expandable seasons with inline episode tables (no page navigation)
@@ -179,8 +182,22 @@ prisma/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/api/tv-shows` | Create a new TV show |
-| `PATCH` | `/api/tv-shows/[id]` | Update a TV show |
+| `PATCH` | `/api/tv-shows/[id]` | Update a TV show (supports `cascade` for monitorStatus) |
 | `DELETE` | `/api/tv-shows/[id]` | Delete a TV show |
+
+### Seasons & Episodes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `PATCH` | `/api/seasons/[id]` | Update a season (supports `cascade` for monitorStatus) |
+| `PATCH` | `/api/episodes/[id]` | Update an episode |
+
+### Files & Tests
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `PATCH` | `/api/files/[id]` | Update file quality/action |
+| `PATCH` | `/api/compatibility-tests/[id]` | Update test status |
 
 ### Settings
 
@@ -221,15 +238,24 @@ prisma/
 
 ## Database Schema
 
-| Model | Description |
-|-------|-------------|
-| `TVShow` | TV series (title, year, folderName, TMDB metadata) |
-| `Season` | Season within a show (TMDB poster, overview, air date) |
-| `Episode` | Episode within a season (TMDB still, overview, runtime) |
-| `EpisodeFile` | Media file with quality metadata |
-| `ScanHistory` | Scan operation logs |
-| `CompatibilityTest` | Playback test results |
-| `Settings` | Application settings (date format, etc.) |
+| Model | Key Fields | Description |
+|-------|------------|-------------|
+| `TVShow` | `title`, `year`, `folderName`, `monitorStatus`, TMDB fields | TV series with monitoring intent |
+| `Season` | `seasonNumber`, `name`, `monitorStatus`, TMDB fields | Season within a show |
+| `Episode` | `episodeNumber`, `title`, `monitorStatus`, TMDB fields | Episode within a season |
+| `EpisodeFile` | `filepath`, `quality`, `action`, codec/resolution fields | Media file with quality state |
+| `CompatibilityTest` | `platform`, `status` | Playback test results per file |
+| `ScanHistory` | `scanType`, `status`, file counts | Scan operation logs |
+| `Settings` | `dateFormat` | Application settings |
+
+### Status Enums
+
+```prisma
+enum MonitorStatus { WANTED, UNWANTED }
+enum FileQuality { UNVERIFIED, OK, BROKEN }
+enum FileAction { NOTHING, REDOWNLOAD, CONVERT, ORGANIZE, REPAIR }
+enum TestStatus { NOT_TESTED, WORKS, PLAYABLE, FAILS }
+```
 
 ## Filename Parsing
 
@@ -245,6 +271,74 @@ Breaking.Bad.S01E01.720p.BluRay.mkv
 # Alternative XxYY
 Breaking Bad 1x01.mkv
 ```
+
+## Status System
+
+The application uses a two-dimensional status system that separates **user intent** from **computed state**.
+
+### Monitor Status (User Intent)
+
+Stored on shows, seasons, and episodes. Represents what the user wants to track.
+
+| Status | Description | Badge Color |
+|--------|-------------|-------------|
+| `WANTED` | User wants this content | Blue (default) |
+| `UNWANTED` | User doesn't want this content | Gray (outline) |
+| `PARTIAL` | Mixed children (display only, not stored) | Gray (secondary) |
+
+**Cascade Updates**: When changing a show or season to `UNWANTED`, a dialog asks whether to apply to all children.
+
+### Quality Status (Computed State)
+
+Computed from children, never stored directly. Represents the current state of the content.
+
+| Status | Description | Badge Color |
+|--------|-------------|-------------|
+| `OK` | All files verified good | Green (default) |
+| `UNVERIFIED` | Files exist but not verified | Yellow (warning) |
+| `BROKEN` | At least one file has issues | Red (destructive) |
+| `MISSING` | Wanted but no files exist | Gray (secondary) |
+
+**Computation Logic** (worst status wins):
+- Episode: Computed from its files
+- Season: Worst quality among its episodes
+- Show: Worst quality among its seasons
+
+### File Quality
+
+Stored on individual files. User-verifiable state.
+
+| Status | Description |
+|--------|-------------|
+| `UNVERIFIED` | Not yet checked |
+| `OK` | File is good |
+| `BROKEN` | File has issues |
+
+### Test Status (Compatibility Tests)
+
+| Status | Description |
+|--------|-------------|
+| `NOT_TESTED` | No test performed |
+| `WORKS` | Plays without issues |
+| `PLAYABLE` | Plays with conditions (e.g., needs transcoding) |
+| `FAILS` | Does not play |
+
+### File Actions
+
+| Action | Description |
+|--------|-------------|
+| `NOTHING` | No action needed |
+| `REDOWNLOAD` | Should be re-downloaded |
+| `CONVERT` | Needs format conversion |
+| `ORGANIZE` | Needs file organization |
+| `REPAIR` | Needs repair |
+
+### UI Components
+
+All status badges are clickable and open dropdowns to change values:
+
+- **StatusSelect**: Generic status selector for any status type
+- **MonitorStatusSelect**: Specialized selector with cascade confirmation dialog
 
 ## Tech Stack
 
@@ -281,7 +375,9 @@ npx prisma generate  # Generate client
 - [x] Date format settings (EU/US/ISO)
 - [x] TMDB integration (metadata, posters, auto-match)
 - [x] Expandable seasons with inline episode tables
-- [ ] Import seasons & episodes from TMDB
+- [x] Import seasons & episodes from TMDB
+- [x] Two-dimensional status system (monitor intent + quality state)
+- [x] Clickable status badges with cascade updates
 - [ ] ffprobe metadata extraction
 - [ ] Movies support
 - [ ] Plex database sync

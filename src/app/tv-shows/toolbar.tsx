@@ -14,12 +14,10 @@ import {
 import { Search, LayoutGrid, Table } from 'lucide-react';
 import { TVShowDialog } from './show-dialog';
 
-const STATUS_OPTIONS = [
-  { value: 'all', label: 'All Statuses' },
-  { value: 'TO_CHECK', label: 'To Check' },
-  { value: 'GOOD', label: 'Good' },
-  { value: 'BAD', label: 'Bad' },
-  { value: 'DELETED', label: 'Deleted' },
+const MONITOR_STATUS_OPTIONS = [
+  { value: 'all', label: 'All' },
+  { value: 'WANTED', label: 'Wanted' },
+  { value: 'UNWANTED', label: 'Unwanted' },
 ];
 
 export function TVShowsToolbar() {
@@ -28,7 +26,7 @@ export function TVShowsToolbar() {
   const [isPending, startTransition] = useTransition();
 
   const currentSearch = searchParams.get('q') ?? '';
-  const currentStatus = searchParams.get('status') ?? 'all';
+  const currentMonitorStatus = searchParams.get('monitor') ?? 'all';
   const currentView = searchParams.get('view') ?? 'grid';
 
   const updateParams = useCallback(
@@ -50,8 +48,8 @@ export function TVShowsToolbar() {
     updateParams('q', e.target.value);
   };
 
-  const handleStatusChange = (value: string) => {
-    updateParams('status', value);
+  const handleMonitorStatusChange = (value: string) => {
+    updateParams('monitor', value);
   };
 
   const handleViewChange = (view: string) => {
@@ -72,13 +70,13 @@ export function TVShowsToolbar() {
         />
       </div>
 
-      {/* Status Filter */}
-      <Select value={currentStatus} onValueChange={handleStatusChange}>
-        <SelectTrigger className="w-[150px]">
-          <SelectValue placeholder="Status" />
+      {/* Monitor Status Filter */}
+      <Select value={currentMonitorStatus} onValueChange={handleMonitorStatusChange}>
+        <SelectTrigger className="w-[130px]">
+          <SelectValue placeholder="Monitor" />
         </SelectTrigger>
         <SelectContent>
-          {STATUS_OPTIONS.map((option) => (
+          {MONITOR_STATUS_OPTIONS.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>

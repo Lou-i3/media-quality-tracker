@@ -1,14 +1,14 @@
 /**
  * Episode CRUD API
- * PATCH: Update episode details
+ * PATCH: Update episode details including monitorStatus
  * DELETE: Delete episode (only if no files attached)
  */
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Status } from '@/generated/prisma';
+import { MonitorStatus } from '@/generated/prisma';
 
-const VALID_STATUSES: Status[] = ['TO_CHECK', 'BAD', 'GOOD', 'DELETED', 'MISSING', 'UNWANTED'];
+const VALID_MONITOR_STATUSES: MonitorStatus[] = ['WANTED', 'UNWANTED'];
 
 export async function PATCH(
   request: Request,
@@ -26,7 +26,7 @@ export async function PATCH(
     const {
       title,
       episodeNumber,
-      status,
+      monitorStatus,
       notes,
       description,
       airDate,
@@ -39,7 +39,7 @@ export async function PATCH(
     const updateData: {
       title?: string | null;
       episodeNumber?: number;
-      status?: Status;
+      monitorStatus?: MonitorStatus;
       notes?: string | null;
       description?: string | null;
       airDate?: Date | null;
@@ -69,11 +69,11 @@ export async function PATCH(
       updateData.episodeNumber = episodeNumber;
     }
 
-    if (status !== undefined) {
-      if (!VALID_STATUSES.includes(status)) {
-        return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    if (monitorStatus !== undefined) {
+      if (!VALID_MONITOR_STATUSES.includes(monitorStatus)) {
+        return NextResponse.json({ error: 'Invalid monitorStatus' }, { status: 400 });
       }
-      updateData.status = status;
+      updateData.monitorStatus = monitorStatus;
     }
 
     if (notes !== undefined) {

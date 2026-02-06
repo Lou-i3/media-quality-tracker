@@ -6,7 +6,15 @@
  */
 
 import Link from 'next/link';
-import { getStatusVariant } from '@/lib/status';
+import { useRouter } from 'next/navigation';
+import {
+  getMonitorStatusVariant,
+  getQualityStatusVariant,
+  getDisplayMonitorStatus,
+  MONITOR_STATUS_LABELS,
+  QUALITY_STATUS_LABELS,
+  type QualityStatus,
+} from '@/lib/status';
 import { getPosterUrl } from '@/lib/tmdb/images';
 import {
   Accordion,
@@ -28,13 +36,16 @@ import {
 import { ChevronRight } from 'lucide-react';
 import { SeasonDialog } from './season-dialog';
 import { EpisodeDialog } from './episode-dialog';
+import { MonitorStatusSelect } from '@/components/monitor-status-select';
+import type { MonitorStatus } from '@/generated/prisma/client';
 
 interface Episode {
   id: number;
   episodeNumber: number;
   tmdbEpisodeId: number | null;
   title: string | null;
-  status: string;
+  monitorStatus: MonitorStatus;
+  qualityStatus: QualityStatus;
   notes: string | null;
   description: string | null;
   airDate: Date | null;
@@ -49,7 +60,8 @@ interface Season {
   seasonNumber: number;
   tmdbSeasonId: number | null;
   name: string | null;
-  status: string;
+  monitorStatus: MonitorStatus;
+  qualityStatus: QualityStatus;
   notes: string | null;
   posterPath: string | null;
   description: string | null;
@@ -63,6 +75,8 @@ interface SeasonsListProps {
 }
 
 export function SeasonsList({ showId, seasons }: SeasonsListProps) {
+  const router = useRouter();
+
   if (seasons.length === 0) {
     return (
       <Card>
@@ -75,109 +89,136 @@ export function SeasonsList({ showId, seasons }: SeasonsListProps) {
 
   return (
     <Accordion type="multiple" className="space-y-4">
-      {seasons.map((season) => (
-        <AccordionItem
-          key={season.id}
-          value={`season-${season.id}`}
-          className="border rounded-lg bg-card"
-        >
-          <div className="flex items-center">
-            <AccordionTrigger className="flex-1 px-4 py-3 items-center hover:no-underline hover:bg-accent/50 rounded-lg data-[state=open]:rounded-b-none [&[data-state=open]>svg]:rotate-180">
-              <span className="flex items-center justify-between w-full pr-2">
-                <span className="flex items-center gap-3">
-                  {season.posterPath ? (
-                    <img
-                      src={getPosterUrl(season.posterPath, 'w92') || ''}
-                      alt=""
-                      className="w-10 h-14 rounded object-cover flex-shrink-0"
+      {seasons.map((season) => {
+        const seasonDisplayMonitor = getDisplayMonitorStatus(season.monitorStatus, season.episodes);
+
+        return (
+          <AccordionItem
+            key={season.id}
+            value={`season-${season.id}`}
+            className="border rounded-lg bg-card"
+          >
+            <div className="flex items-center">
+              <AccordionTrigger className="flex-1 px-4 py-3 items-center hover:no-underline hover:bg-accent/50 rounded-lg data-[state=open]:rounded-b-none [&[data-state=open]>svg]:rotate-180">
+                <span className="flex items-center justify-between w-full pr-2">
+                  <span className="flex items-center gap-3">
+                    {season.posterPath ? (
+                      <img
+                        src={getPosterUrl(season.posterPath, 'w92') || ''}
+                        alt=""
+                        className="w-10 h-14 rounded object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-14 rounded bg-muted flex-shrink-0" />
+                    )}
+                    <span className="text-lg font-semibold">
+                      {season.name || `Season ${season.seasonNumber}`}
+                      {season.name && (
+                        <span className="text-muted-foreground font-normal ml-2">
+                          (Season {season.seasonNumber})
+                        </span>
+                      )}
+                      {season.tmdbSeasonId && (
+                        <span className="text-xs text-muted-foreground font-normal ml-2">
+                          #{season.tmdbSeasonId}
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                  <span className="flex items-center gap-3">
+                    <span className="text-sm text-muted-foreground">
+                      {season.episodes.length} episodes
+                    </span>
+                    <MonitorStatusSelect
+                      entityType="season"
+                      entityId={season.id}
+                      value={season.monitorStatus}
+                      displayValue={seasonDisplayMonitor}
+                      hasChildren={season.episodes.length > 0}
                     />
-                  ) : (
-                    <div className="w-10 h-14 rounded bg-muted flex-shrink-0" />
-                  )}
-                  <span className="text-lg font-semibold">
-                    {season.name || `Season ${season.seasonNumber}`}
-                    {season.name && (
-                      <span className="text-muted-foreground font-normal ml-2">
-                        (Season {season.seasonNumber})
-                      </span>
-                    )}
-                    {season.tmdbSeasonId && (
-                      <span className="text-xs text-muted-foreground font-normal ml-2">
-                        #{season.tmdbSeasonId}
-                      </span>
+                    {season.monitorStatus !== 'UNWANTED' && (
+                      <Badge variant={getQualityStatusVariant(season.qualityStatus)}>
+                        {QUALITY_STATUS_LABELS[season.qualityStatus]}
+                      </Badge>
                     )}
                   </span>
                 </span>
-                <span className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground">
-                    {season.episodes.length} episodes
-                  </span>
-                  <Badge variant={getStatusVariant(season.status)}>
-                    {season.status}
-                  </Badge>
-                </span>
-              </span>
-            </AccordionTrigger>
-            <div className="pr-4">
-              <SeasonDialog season={season} />
-            </div>
-          </div>
-          <AccordionContent className="px-0 pb-0">
-            {season.episodes.length === 0 ? (
-              <div className="p-6 text-center border-t">
-                <p className="text-muted-foreground">No episodes in this season.</p>
+              </AccordionTrigger>
+              <div className="pr-4">
+                <SeasonDialog season={season} />
               </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-t">
-                    <TableHead className="w-20">Episode</TableHead>
-                    <TableHead className="w-24">TMDB</TableHead>
-                    <TableHead>Title</TableHead>
-                    <TableHead className="w-28">Status</TableHead>
-                    <TableHead className="w-20">Files</TableHead>
-                    <TableHead className="w-24 text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {season.episodes.map((episode) => (
-                    <TableRow key={episode.id}>
-                      <TableCell className="font-medium font-mono">
-                        E{String(episode.episodeNumber).padStart(2, '0')}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground text-xs font-mono">
-                        {episode.tmdbEpisodeId ? `#${episode.tmdbEpisodeId}` : '—'}
-                      </TableCell>
-                      <TableCell>{episode.title || '—'}</TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusVariant(episode.status)} className="text-xs">
-                          {episode.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {episode.files.length}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <EpisodeDialog
-                            episode={episode}
-                            seasonNumber={season.seasonNumber}
-                          />
-                          <Button variant="ghost" size="sm" asChild>
-                            <Link href={`/tv-shows/${showId}/episodes/${episode.id}`}>
-                              <ChevronRight className="size-4" />
-                            </Link>
-                          </Button>
-                        </div>
-                      </TableCell>
+            </div>
+            <AccordionContent className="px-0 pb-0">
+              {season.episodes.length === 0 ? (
+                <div className="p-6 text-center border-t">
+                  <p className="text-muted-foreground">No episodes in this season.</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-t">
+                      <TableHead className="w-20">Episode</TableHead>
+                      <TableHead className="w-24">TMDB</TableHead>
+                      <TableHead>Title</TableHead>
+                      <TableHead className="w-28">Monitor</TableHead>
+                      <TableHead className="w-28">Quality</TableHead>
+                      <TableHead className="w-20">Files</TableHead>
+                      <TableHead className="w-24 text-right">Actions</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </AccordionContent>
-        </AccordionItem>
-      ))}
+                  </TableHeader>
+                  <TableBody>
+                    {season.episodes.map((episode) => (
+                      <TableRow key={episode.id}>
+                        <TableCell className="font-medium font-mono">
+                          E{String(episode.episodeNumber).padStart(2, '0')}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-xs font-mono">
+                          {episode.tmdbEpisodeId ? `#${episode.tmdbEpisodeId}` : '—'}
+                        </TableCell>
+                        <TableCell>{episode.title || '—'}</TableCell>
+                        <TableCell>
+                          <MonitorStatusSelect
+                            entityType="episode"
+                            entityId={episode.id}
+                            value={episode.monitorStatus}
+                            displayValue={episode.monitorStatus}
+                            className="text-xs"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {episode.monitorStatus !== 'UNWANTED' ? (
+                            <Badge variant={getQualityStatusVariant(episode.qualityStatus)} className="text-xs">
+                              {QUALITY_STATUS_LABELS[episode.qualityStatus]}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">—</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {episode.files.length}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <EpisodeDialog
+                              episode={episode}
+                              seasonNumber={season.seasonNumber}
+                            />
+                            <Button variant="ghost" size="sm" asChild>
+                              <Link href={`/tv-shows/${showId}/episodes/${episode.id}`}>
+                                <ChevronRight className="size-4" />
+                              </Link>
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </AccordionContent>
+          </AccordionItem>
+        );
+      })}
     </Accordion>
   );
 }

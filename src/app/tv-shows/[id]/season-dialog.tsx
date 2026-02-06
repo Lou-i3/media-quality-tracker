@@ -2,7 +2,7 @@
 
 /**
  * Season Edit Dialog
- * Edit season details including name, status, notes, etc.
+ * Edit season details including name, monitorStatus, notes, etc.
  */
 
 import { useState, useEffect } from 'react';
@@ -28,12 +28,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getPosterUrl } from '@/lib/tmdb/images';
+import { MONITOR_STATUS_OPTIONS } from '@/lib/status';
 
 interface Season {
   id: number;
   seasonNumber: number;
   name: string | null;
-  status: string;
+  monitorStatus: string;
   notes: string | null;
   posterPath: string | null;
   description: string | null;
@@ -45,22 +46,13 @@ interface SeasonDialogProps {
   trigger?: React.ReactNode;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'TO_CHECK', label: 'To Check' },
-  { value: 'GOOD', label: 'Good' },
-  { value: 'BAD', label: 'Bad' },
-  { value: 'DELETED', label: 'Deleted' },
-  { value: 'MISSING', label: 'Missing' },
-  { value: 'UNWANTED', label: 'Unwanted' },
-];
-
 export function SeasonDialog({ season, trigger }: SeasonDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    status: 'TO_CHECK',
+    monitorStatus: 'WANTED',
     notes: '',
     posterPath: '',
     description: '',
@@ -72,7 +64,7 @@ export function SeasonDialog({ season, trigger }: SeasonDialogProps) {
     if (open) {
       setFormData({
         name: season.name ?? '',
-        status: season.status,
+        monitorStatus: season.monitorStatus,
         notes: season.notes ?? '',
         posterPath: season.posterPath ?? '',
         description: season.description ?? '',
@@ -90,7 +82,7 @@ export function SeasonDialog({ season, trigger }: SeasonDialogProps) {
     try {
       const payload = {
         name: formData.name || null,
-        status: formData.status,
+        monitorStatus: formData.monitorStatus,
         notes: formData.notes || null,
         posterPath: formData.posterPath || null,
         description: formData.description || null,
@@ -148,20 +140,20 @@ export function SeasonDialog({ season, trigger }: SeasonDialogProps) {
             </div>
 
             <div className="grid gap-2">
-              <label htmlFor="season-status" className="text-sm font-medium">
-                Status
+              <label htmlFor="season-monitor-status" className="text-sm font-medium">
+                Monitor Status
               </label>
               <Select
-                value={formData.status}
+                value={formData.monitorStatus}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, status: value })
+                  setFormData({ ...formData, monitorStatus: value })
                 }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
+                  {MONITOR_STATUS_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>

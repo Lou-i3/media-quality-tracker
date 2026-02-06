@@ -1,10 +1,16 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
-import { getStatusVariant } from "@/lib/status";
 import { getSettings } from "@/lib/settings";
-import { formatDateWithFormat } from "@/lib/format";
 import { getPosterUrl } from "@/lib/tmdb";
+import {
+  computeEpisodeQuality,
+  computeSeasonQuality,
+  computeShowQuality,
+  getDisplayMonitorStatus,
+  getQualityStatusVariant,
+  QUALITY_STATUS_LABELS,
+} from "@/lib/status";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,35 +24,66 @@ import {
 } from "@/components/ui/table";
 import { TVShowsToolbar } from "./toolbar";
 import { TVShowDialog } from "./show-dialog";
-import { Status } from "@/generated/prisma/client";
+import { ShowStatusBadges } from "./show-status-badges";
+import { MonitorStatus } from "@/generated/prisma/client";
 import { Star, Film } from "lucide-react";
 
 export const dynamic = 'force-dynamic';
 
 interface Props {
-  searchParams: Promise<{ q?: string; status?: string; view?: string }>;
+  searchParams: Promise<{ q?: string; monitor?: string; view?: string }>;
 }
 
 export default async function TVShowsPage({ searchParams }: Props) {
-  const [{ q, status, view = 'grid' }, settings] = await Promise.all([
+  const [{ q, monitor, view = 'grid' }, settings] = await Promise.all([
     searchParams,
     getSettings(),
   ]);
-  const dateFormat = settings.dateFormat;
 
   const shows = await prisma.tVShow.findMany({
     where: {
       ...(q ? { title: { contains: q } } : {}),
-      ...(status && status !== 'all' ? { status: status as Status } : {}),
+      ...(monitor && monitor !== 'all' ? { monitorStatus: monitor as MonitorStatus } : {}),
     },
     include: {
       seasons: {
         include: {
-          episodes: true,
+          episodes: {
+            include: {
+              files: {
+                select: { quality: true },
+              },
+            },
+          },
         },
       },
     },
     orderBy: { title: 'asc' },
+  });
+
+  // Compute quality status for each show
+  const showsWithQuality = shows.map((show) => {
+    const seasonsWithQuality = show.seasons.map((season) => {
+      const episodesWithQuality = season.episodes.map((episode) => ({
+        ...episode,
+        qualityStatus: computeEpisodeQuality(episode.monitorStatus, episode.files),
+      }));
+      return {
+        ...season,
+        episodes: episodesWithQuality,
+        qualityStatus: computeSeasonQuality(episodesWithQuality),
+      };
+    });
+
+    const displayMonitorStatus = getDisplayMonitorStatus(show.monitorStatus, show.seasons);
+    const qualityStatus = computeShowQuality(seasonsWithQuality);
+
+    return {
+      ...show,
+      seasons: seasonsWithQuality,
+      displayMonitorStatus,
+      qualityStatus,
+    };
   });
 
   const isTableView = view === 'table';
@@ -69,14 +106,14 @@ export default async function TVShowsPage({ searchParams }: Props) {
       </div>
 
       <div className="mt-6">
-      {shows.length === 0 ? (
+      {showsWithQuality.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
             <p className="text-muted-foreground mb-2">
-              {q || status ? 'No TV shows match your filters.' : 'No TV shows in your library yet.'}
+              {q || monitor ? 'No TV shows match your filters.' : 'No TV shows in your library yet.'}
             </p>
             <p className="text-sm text-muted-foreground">
-              {q || status ? 'Try adjusting your search or filters.' : 'Run a filesystem scan or add shows manually.'}
+              {q || monitor ? 'Try adjusting your search or filters.' : 'Run a filesystem scan or add shows manually.'}
             </p>
           </CardContent>
         </Card>
@@ -92,12 +129,13 @@ export default async function TVShowsPage({ searchParams }: Props) {
                   <TableHead>Rating</TableHead>
                   <TableHead>Seasons</TableHead>
                   <TableHead>Episodes</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Monitor</TableHead>
+                  <TableHead>Quality</TableHead>
                   <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {shows.map((show) => (
+                {showsWithQuality.map((show) => (
                   <TableRow key={show.id}>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -128,9 +166,23 @@ export default async function TVShowsPage({ searchParams }: Props) {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusVariant(show.status)}>
-                        {show.status}
-                      </Badge>
+                      <ShowStatusBadges
+                        showId={show.id}
+                        monitorStatus={show.monitorStatus}
+                        displayMonitorStatus={show.displayMonitorStatus}
+                        qualityStatus={show.qualityStatus}
+                        hasChildren={show.seasons.length > 0}
+                        showQuality={false}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {show.monitorStatus !== 'UNWANTED' ? (
+                        <Badge variant={getQualityStatusVariant(show.qualityStatus)}>
+                          {QUALITY_STATUS_LABELS[show.qualityStatus]}
+                        </Badge>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
@@ -149,7 +201,7 @@ export default async function TVShowsPage({ searchParams }: Props) {
       ) : (
         /* Grid View */
         <div className="grid gap-4">
-          {shows.map((show) => (
+          {showsWithQuality.map((show) => (
             <div key={show.id} className="block">
               <Card className="hover:bg-accent/50 transition-colors">
                 <CardContent className="p-6">
@@ -192,9 +244,14 @@ export default async function TVShowsPage({ searchParams }: Props) {
                           </div>
                         </Link>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <Badge variant={getStatusVariant(show.status)}>
-                            {show.status}
-                          </Badge>
+                          <ShowStatusBadges
+                            showId={show.id}
+                            monitorStatus={show.monitorStatus}
+                            displayMonitorStatus={show.displayMonitorStatus}
+                            qualityStatus={show.qualityStatus}
+                            hasChildren={show.seasons.length > 0}
+                            showQuality={show.monitorStatus !== 'UNWANTED'}
+                          />
                           <TVShowDialog show={show} />
                         </div>
                       </div>

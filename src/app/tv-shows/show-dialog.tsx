@@ -23,13 +23,14 @@ import {
 } from '@/components/ui/select';
 import { Pencil, Plus, ImageIcon } from 'lucide-react';
 import { getPosterUrl, getBackdropUrl } from '@/lib/tmdb/images';
+import { MONITOR_STATUS_OPTIONS } from '@/lib/status';
 
 interface TVShow {
   id: number;
   title: string;
   folderName?: string | null;
   year: number | null;
-  status: string;
+  monitorStatus: string;
   notes: string | null;
   description?: string | null;
   posterPath?: string | null;
@@ -43,13 +44,6 @@ interface TVShowDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'TO_CHECK', label: 'To Check' },
-  { value: 'GOOD', label: 'Good' },
-  { value: 'BAD', label: 'Bad' },
-  { value: 'DELETED', label: 'Deleted' },
-];
-
 export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVShowDialogProps) {
   const router = useRouter();
   const isEdit = !!show;
@@ -61,7 +55,7 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
     title: '',
     folderName: '',
     year: '',
-    status: 'TO_CHECK',
+    monitorStatus: 'WANTED',
     notes: '',
     description: '',
     posterPath: '',
@@ -78,7 +72,7 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
         title: show?.title ?? '',
         folderName: show?.folderName ?? '',
         year: show?.year?.toString() ?? '',
-        status: show?.status ?? 'TO_CHECK',
+        monitorStatus: show?.monitorStatus ?? 'WANTED',
         notes: show?.notes ?? '',
         description: show?.description ?? '',
         posterPath: show?.posterPath ?? '',
@@ -96,7 +90,7 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
         title: formData.title,
         folderName: formData.folderName || null,
         year: formData.year ? parseInt(formData.year, 10) : null,
-        status: formData.status,
+        monitorStatus: formData.monitorStatus,
         notes: formData.notes || null,
         description: formData.description || null,
         posterPath: formData.posterPath || null,
@@ -230,18 +224,18 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
               />
             </div>
             <div className="grid gap-2">
-              <label htmlFor="dialog-status" className="text-sm font-medium">
-                Status
+              <label htmlFor="dialog-monitor-status" className="text-sm font-medium">
+                Monitor Status
               </label>
               <Select
-                value={formData.status}
-                onValueChange={(value) => setFormData({ ...formData, status: value })}
+                value={formData.monitorStatus}
+                onValueChange={(value) => setFormData({ ...formData, monitorStatus: value })}
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
+                  {MONITOR_STATUS_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>

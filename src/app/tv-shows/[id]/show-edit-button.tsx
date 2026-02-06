@@ -15,7 +15,7 @@ interface ShowEditButtonProps {
     title: string;
     folderName: string | null;
     year: number | null;
-    status: string;
+    monitorStatus: string;
     notes: string | null;
     description: string | null;
     posterPath: string | null;

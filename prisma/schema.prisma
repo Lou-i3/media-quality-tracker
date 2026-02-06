@@ -14,22 +14,21 @@ datasource db {
 }
 
 // Enums
-enum Status {
-  TO_CHECK
-  BAD
-  GOOD
-  DELETED
-  MISSING      // Episode exists in TMDB but no file on disk
-  UNWANTED     // User explicitly doesn't want this episode
+
+/// Monitoring intent - does the user want this content?
+enum MonitorStatus {
+  WANTED
+  UNWANTED
 }
 
-enum FileStatus {
-  TO_CHECK
-  BAD
-  GOOD
-  DELETED
+/// Quality state for files
+enum FileQuality {
+  UNVERIFIED
+  OK
+  BROKEN
 }
 
+/// Recommended action for a file
 enum Action {
   NOTHING
   REDOWNLOAD
@@ -38,18 +37,15 @@ enum Action {
   REPAIR
 }
 
-enum ArrStatus {
-  MONITORED
-  UNMONITORED
-}
-
+/// Compatibility test result
 enum TestStatus {
-  WORKS
-  FAILS
   NOT_TESTED
-  NEEDS_TRANSCODING
+  WORKS
+  PLAYABLE      // Works with transcoding/conditions
+  FAILS
 }
 
+/// Scan job status
 enum ScanStatus {
   RUNNING
   COMPLETED
@@ -58,15 +54,15 @@ enum ScanStatus {
 
 // TV Show Models
 model TVShow {
-  id         Int      @id @default(autoincrement())
-  title      String
-  folderName String?  // Original folder name on disk (can differ from display title)
-  year       Int?
-  tvdbId     String?  @unique
-  tmdbId     Int?     @unique
-  plexId     String?  @unique
-  status     Status   @default(TO_CHECK)
-  notes      String?
+  id            Int           @id @default(autoincrement())
+  title         String
+  folderName    String?       // Original folder name on disk (can differ from display title)
+  year          Int?
+  tvdbId        String?       @unique
+  tmdbId        Int?          @unique
+  plexId        String?       @unique
+  monitorStatus MonitorStatus @default(WANTED)
+  notes         String?
 
   // TMDB Metadata
   posterPath       String?
@@ -91,13 +87,13 @@ model TVShow {
 }
 
 model Season {
-  id           Int      @id @default(autoincrement())
-  tvShowId     Int
-  tvShow       TVShow   @relation(fields: [tvShowId], references: [id], onDelete: Cascade)
-  seasonNumber Int
-  name         String?   // Season name from TMDB (e.g., "Specials", "Season 1: The Beginning")
-  status       Status   @default(TO_CHECK)
-  notes        String?
+  id            Int           @id @default(autoincrement())
+  tvShowId      Int
+  tvShow        TVShow        @relation(fields: [tvShowId], references: [id], onDelete: Cascade)
+  seasonNumber  Int
+  name          String?       // Season name from TMDB (e.g., "Specials", "Season 1: The Beginning")
+  monitorStatus MonitorStatus @default(WANTED)
+  notes         String?
 
   // TMDB Metadata
   tmdbSeasonId Int?
@@ -115,12 +111,12 @@ model Season {
 }
 
 model Episode {
-  id            Int      @id @default(autoincrement())
+  id            Int           @id @default(autoincrement())
   seasonId      Int
-  season        Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  season        Season        @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   episodeNumber Int
   title         String?
-  status        Status   @default(TO_CHECK)
+  monitorStatus MonitorStatus @default(WANTED)
   notes         String?
 
   // TMDB Metadata
@@ -144,18 +140,17 @@ model EpisodeFile {
   id                Int      @id @default(autoincrement())
   episodeId         Int
   episode           Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-  
+
   filepath          String   @unique
   filename          String
   fileSize          BigInt
   dateModified      DateTime
   fileExists        Boolean  @default(true)
-  
-  status            FileStatus @default(TO_CHECK)
-  action            Action     @default(NOTHING)
-  arrStatus         ArrStatus  @default(MONITORED)
+
+  quality           FileQuality @default(UNVERIFIED)
+  action            Action      @default(NOTHING)
   notes             String?
-  
+
   codec             String?
   resolution        String?
   bitrate           Int?
@@ -163,20 +158,20 @@ model EpisodeFile {
   audioFormat       String?
   hdrType           String?
   duration          Int?
-  
+
   metadataSource    String?
   plexMatched       Boolean  @default(false)
-  
+
   audioLanguages    String?
   subtitleLanguages String?
-  
+
   compatibilityTests CompatibilityTest[]
-  
+
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  
+
   @@index([episodeId])
-  @@index([status])
+  @@index([quality])
   @@index([action])
 }
 
@@ -184,12 +179,12 @@ model CompatibilityTest {
   id            Int      @id @default(autoincrement())
   episodeFileId Int?
   episodeFile   EpisodeFile? @relation(fields: [episodeFileId], references: [id], onDelete: Cascade)
-  
+
   platform      String
   status        TestStatus
   notes         String?
   testedAt      DateTime @default(now())
-  
+
   @@index([episodeFileId])
 }
 

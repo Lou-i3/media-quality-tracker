@@ -1,10 +1,18 @@
+/**
+ * TV Show CRUD API
+ * PATCH: Update show details including monitorStatus with optional cascade
+ * DELETE: Delete show and all related data
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Status } from '@/generated/prisma/client';
+import { MonitorStatus } from '@/generated/prisma/client';
 
 interface Params {
   params: Promise<{ id: string }>;
 }
+
+const VALID_MONITOR_STATUSES: MonitorStatus[] = ['WANTED', 'UNWANTED'];
 
 export async function PATCH(request: NextRequest, { params }: Params) {
   try {
@@ -16,13 +24,23 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
 
     const body = await request.json();
-    const { title, folderName, year, status, notes, description, posterPath, backdropPath } = body;
+    const {
+      title,
+      folderName,
+      year,
+      monitorStatus,
+      cascade,
+      notes,
+      description,
+      posterPath,
+      backdropPath,
+    } = body;
 
     const updateData: {
       title?: string;
       folderName?: string | null;
       year?: number | null;
-      status?: Status;
+      monitorStatus?: MonitorStatus;
       notes?: string | null;
       description?: string | null;
       posterPath?: string | null;
@@ -44,11 +62,11 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       updateData.year = year ? parseInt(year, 10) : null;
     }
 
-    if (status !== undefined) {
-      if (!['TO_CHECK', 'GOOD', 'BAD', 'DELETED'].includes(status)) {
-        return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+    if (monitorStatus !== undefined) {
+      if (!VALID_MONITOR_STATUSES.includes(monitorStatus)) {
+        return NextResponse.json({ error: 'Invalid monitorStatus' }, { status: 400 });
       }
-      updateData.status = status as Status;
+      updateData.monitorStatus = monitorStatus;
     }
 
     if (notes !== undefined) {
@@ -65,6 +83,27 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
     if (backdropPath !== undefined) {
       updateData.backdropPath = backdropPath || null;
+    }
+
+    // If cascade is true and monitorStatus is being changed, update all children
+    if (cascade && monitorStatus !== undefined) {
+      await prisma.$transaction([
+        prisma.tVShow.update({
+          where: { id: showId },
+          data: updateData,
+        }),
+        prisma.season.updateMany({
+          where: { tvShowId: showId },
+          data: { monitorStatus },
+        }),
+        prisma.episode.updateMany({
+          where: { season: { tvShowId: showId } },
+          data: { monitorStatus },
+        }),
+      ]);
+
+      const show = await prisma.tVShow.findUnique({ where: { id: showId } });
+      return NextResponse.json(show);
     }
 
     const show = await prisma.tVShow.update({

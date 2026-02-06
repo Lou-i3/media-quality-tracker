@@ -2,11 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatFileSize, formatDuration, formatDateWithFormat } from "@/lib/format";
-import { getStatusVariant } from "@/lib/status";
+import { computeEpisodeQuality } from "@/lib/status";
 import { getSettings } from "@/lib/settings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, FileCheck, FileX, Clock, HardDrive } from "lucide-react";
+import { EpisodeDetailStatusBadges } from "./episode-detail-status-badges";
+import { FileStatusBadges, CompatibilityTestBadge } from "./file-status-badges";
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +49,9 @@ export default async function EpisodeDetailPage({ params }: Props) {
     notFound();
   }
 
+  // Compute episode quality status from files
+  const qualityStatus = computeEpisodeQuality(episode.monitorStatus, episode.files);
+
   return (
     <div className="p-8">
       {/* Breadcrumb */}
@@ -75,9 +80,11 @@ export default async function EpisodeDetailPage({ params }: Props) {
               {episode.season.tvShow.title}
             </p>
           </div>
-          <Badge variant={getStatusVariant(episode.status)} className="text-sm">
-            {episode.status}
-          </Badge>
+          <EpisodeDetailStatusBadges
+            episodeId={episode.id}
+            monitorStatus={episode.monitorStatus}
+            qualityStatus={qualityStatus}
+          />
         </div>
 
         {episode.notes && (
@@ -216,30 +223,17 @@ export default async function EpisodeDetailPage({ params }: Props) {
                   {/* Status & Management */}
                   <div>
                     <h4 className="text-sm font-medium mb-3">Status & Management</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-                      <div>
-                        <p className="text-muted-foreground text-xs mb-1">Status</p>
-                        <Badge variant={getStatusVariant(file.status)}>
-                          {file.status}
-                        </Badge>
+                    <FileStatusBadges
+                      fileId={file.id}
+                      quality={file.quality}
+                      action={file.action}
+                    />
+                    {file.metadataSource && (
+                      <div className="mt-3">
+                        <p className="text-muted-foreground text-xs mb-1">Metadata Source</p>
+                        <Badge variant="outline">{file.metadataSource}</Badge>
                       </div>
-                      <div>
-                        <p className="text-muted-foreground text-xs mb-1">Action</p>
-                        <Badge variant="outline">{file.action}</Badge>
-                      </div>
-                      <div>
-                        <p className="text-muted-foreground text-xs mb-1">Arr Status</p>
-                        <Badge variant={file.arrStatus === 'MONITORED' ? 'default' : 'secondary'}>
-                          {file.arrStatus}
-                        </Badge>
-                      </div>
-                      {file.metadataSource && (
-                        <div>
-                          <p className="text-muted-foreground text-xs mb-1">Metadata Source</p>
-                          <Badge variant="outline">{file.metadataSource}</Badge>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
 
                   {/* Plex Integration */}
@@ -269,9 +263,12 @@ export default async function EpisodeDetailPage({ params }: Props) {
                       <h4 className="text-sm font-medium mb-3">Compatibility Tests</h4>
                       <div className="flex flex-wrap gap-2">
                         {file.compatibilityTests.map((test) => (
-                          <Badge key={test.id} variant={getStatusVariant(test.status)}>
-                            {test.platform}: {test.status}
-                          </Badge>
+                          <CompatibilityTestBadge
+                            key={test.id}
+                            testId={test.id}
+                            platform={test.platform}
+                            status={test.status}
+                          />
                         ))}
                       </div>
                     </div>

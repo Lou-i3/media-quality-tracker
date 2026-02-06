@@ -48,7 +48,7 @@ import type {
 } from '@/lib/tmdb/types';
 
 type SortOption = 'number' | 'airDate' | 'name';
-type DefaultStatus = 'MISSING' | 'UNWANTED';
+type MonitorStatusOption = 'WANTED' | 'UNWANTED';
 
 interface TmdbImportDialogProps {
   showId: number;
@@ -60,7 +60,7 @@ interface TmdbImportDialogProps {
 
 interface EpisodeSelection {
   selected: boolean;
-  status: DefaultStatus;
+  monitorStatus: MonitorStatusOption;
 }
 
 interface SeasonSelection {
@@ -91,7 +91,7 @@ export function TmdbImportDialog({
 
   // UI options
   const [sortBy, setSortBy] = useState<SortOption>('number');
-  const [defaultStatus, setDefaultStatus] = useState<DefaultStatus>('MISSING');
+  const [defaultMonitorStatus, setDefaultMonitorStatus] = useState<MonitorStatusOption>('WANTED');
 
   // Reset state when dialog closes
   useEffect(() => {
@@ -139,7 +139,7 @@ export function TmdbImportDialog({
             const shouldSelect = !episode.existingEpisodeId || !episode.hasFiles;
             episodeSelections.set(episode.episodeNumber, {
               selected: shouldSelect,
-              status: defaultStatus,
+              monitorStatus: defaultMonitorStatus,
             });
           }
           newSelections.set(season.seasonNumber, {
@@ -156,7 +156,7 @@ export function TmdbImportDialog({
     };
 
     loadPreview();
-  }, [open, showId, defaultStatus, selectedGroup, episodeGroups.length]);
+  }, [open, showId, defaultMonitorStatus, selectedGroup, episodeGroups.length]);
 
   // Sort seasons and episodes
   const sortedSeasons = useMemo(() => {
@@ -256,11 +256,11 @@ export function TmdbImportDialog({
     });
   };
 
-  // Set episode status
-  const setEpisodeStatus = (
+  // Set episode monitor status
+  const setEpisodeMonitorStatus = (
     seasonNumber: number,
     episodeNumber: number,
-    status: DefaultStatus
+    monitorStatus: MonitorStatusOption
   ) => {
     setSelections((prev) => {
       const newSelections = new Map(prev);
@@ -269,7 +269,7 @@ export function TmdbImportDialog({
         const episode = season.episodes.get(episodeNumber);
         if (episode) {
           const newEpisodes = new Map(season.episodes);
-          newEpisodes.set(episodeNumber, { ...episode, status });
+          newEpisodes.set(episodeNumber, { ...episode, monitorStatus });
           newSelections.set(seasonNumber, { ...season, episodes: newEpisodes });
         }
       }
@@ -292,15 +292,15 @@ export function TmdbImportDialog({
     });
   };
 
-  // Apply default status to all selected
-  const applyDefaultStatus = () => {
+  // Apply default monitor status to all selected
+  const applyDefaultMonitorStatus = () => {
     setSelections((prev) => {
       const newSelections = new Map(prev);
       for (const [seasonNum, season] of newSelections) {
         const newEpisodes = new Map(season.episodes);
         for (const [epNum, epSel] of newEpisodes) {
           if (epSel.selected) {
-            newEpisodes.set(epNum, { ...epSel, status: defaultStatus });
+            newEpisodes.set(epNum, { ...epSel, monitorStatus: defaultMonitorStatus });
           }
         }
         newSelections.set(seasonNum, { ...season, episodes: newEpisodes });
@@ -352,7 +352,7 @@ export function TmdbImportDialog({
               description: episode.overview || null,
               runtime: episode.runtime,
               voteAverage: episode.voteAverage,
-              status: epSel.status,
+              monitorStatus: epSel.monitorStatus,
             });
           }
         }
@@ -533,21 +533,21 @@ export function TmdbImportDialog({
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">Default:</span>
                   <Select
-                    value={defaultStatus}
-                    onValueChange={(v) => setDefaultStatus(v as DefaultStatus)}
+                    value={defaultMonitorStatus}
+                    onValueChange={(v) => setDefaultMonitorStatus(v as MonitorStatusOption)}
                   >
                     <SelectTrigger className="w-28 h-8">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="MISSING">Missing</SelectItem>
+                      <SelectItem value="WANTED">Wanted</SelectItem>
                       <SelectItem value="UNWANTED">Unwanted</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={applyDefaultStatus}
+                    onClick={applyDefaultMonitorStatus}
                     title="Apply to selected"
                   >
                     Apply
@@ -654,12 +654,12 @@ export function TmdbImportDialog({
 
                                 {epSel?.selected && (
                                   <Select
-                                    value={epSel.status}
+                                    value={epSel.monitorStatus}
                                     onValueChange={(v) =>
-                                      setEpisodeStatus(
+                                      setEpisodeMonitorStatus(
                                         season.seasonNumber,
                                         episode.episodeNumber,
-                                        v as DefaultStatus
+                                        v as MonitorStatusOption
                                       )
                                     }
                                   >
@@ -667,7 +667,7 @@ export function TmdbImportDialog({
                                       <SelectValue />
                                     </SelectTrigger>
                                     <SelectContent>
-                                      <SelectItem value="MISSING">Missing</SelectItem>
+                                      <SelectItem value="WANTED">Wanted</SelectItem>
                                       <SelectItem value="UNWANTED">Unwanted</SelectItem>
                                     </SelectContent>
                                   </Select>

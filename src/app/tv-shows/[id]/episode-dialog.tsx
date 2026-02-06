@@ -2,7 +2,7 @@
 
 /**
  * Episode Edit Dialog
- * Edit episode details including title, status, notes, etc.
+ * Edit episode details including title, monitorStatus, notes, etc.
  */
 
 import { useState, useEffect } from 'react';
@@ -28,12 +28,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { getStillUrl } from '@/lib/tmdb/images';
+import { MONITOR_STATUS_OPTIONS } from '@/lib/status';
 
 interface Episode {
   id: number;
   episodeNumber: number;
   title: string | null;
-  status: string;
+  monitorStatus: string;
   notes: string | null;
   description: string | null;
   airDate: Date | null;
@@ -48,22 +49,13 @@ interface EpisodeDialogProps {
   trigger?: React.ReactNode;
 }
 
-const STATUS_OPTIONS = [
-  { value: 'TO_CHECK', label: 'To Check' },
-  { value: 'GOOD', label: 'Good' },
-  { value: 'BAD', label: 'Bad' },
-  { value: 'DELETED', label: 'Deleted' },
-  { value: 'MISSING', label: 'Missing' },
-  { value: 'UNWANTED', label: 'Unwanted' },
-];
-
 export function EpisodeDialog({ episode, seasonNumber, trigger }: EpisodeDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
-    status: 'TO_CHECK',
+    monitorStatus: 'WANTED',
     notes: '',
     description: '',
     airDate: '',
@@ -76,7 +68,7 @@ export function EpisodeDialog({ episode, seasonNumber, trigger }: EpisodeDialogP
     if (open) {
       setFormData({
         title: episode.title ?? '',
-        status: episode.status,
+        monitorStatus: episode.monitorStatus,
         notes: episode.notes ?? '',
         description: episode.description ?? '',
         airDate: episode.airDate
@@ -95,7 +87,7 @@ export function EpisodeDialog({ episode, seasonNumber, trigger }: EpisodeDialogP
     try {
       const payload = {
         title: formData.title || null,
-        status: formData.status,
+        monitorStatus: formData.monitorStatus,
         notes: formData.notes || null,
         description: formData.description || null,
         airDate: formData.airDate || null,
@@ -154,20 +146,20 @@ export function EpisodeDialog({ episode, seasonNumber, trigger }: EpisodeDialogP
             </div>
 
             <div className="grid gap-2">
-              <label htmlFor="episode-status" className="text-sm font-medium">
-                Status
+              <label htmlFor="episode-monitor-status" className="text-sm font-medium">
+                Monitor Status
               </label>
               <Select
-                value={formData.status}
+                value={formData.monitorStatus}
                 onValueChange={(value) =>
-                  setFormData({ ...formData, status: value })
+                  setFormData({ ...formData, monitorStatus: value })
                 }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {STATUS_OPTIONS.map((option) => (
+                  {MONITOR_STATUS_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       {option.label}
                     </SelectItem>

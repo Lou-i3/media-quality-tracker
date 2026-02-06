@@ -168,9 +168,8 @@ export async function upsertEpisodeFile(
     fileSize: file.fileSize,
     dateModified: file.dateModified,
     fileExists: true,
-    status: 'TO_CHECK' as const,
+    quality: 'UNVERIFIED' as const,
     action: 'NOTHING' as const,
-    arrStatus: 'MONITORED' as const,
     ...(metadata
       ? {
           codec: metadata.codec,
@@ -233,12 +232,11 @@ export async function markMissingFilesAsDeleted(
     return 0;
   }
 
-  // Batch update
+  // Batch update - just mark as not existing, quality status computed at episode level
   const result = await prisma.episodeFile.updateMany({
     where: { id: { in: missingIds } },
     data: {
       fileExists: false,
-      status: 'DELETED',
     },
   });
 
@@ -469,9 +467,8 @@ export class BatchProcessor {
           fileSize: file.fileSize,
           dateModified: file.dateModified,
           fileExists: true,
-          status: 'TO_CHECK' as const,
+          quality: 'UNVERIFIED' as const,
           action: 'NOTHING' as const,
-          arrStatus: 'MONITORED' as const,
         };
 
         if (!existingFile) {

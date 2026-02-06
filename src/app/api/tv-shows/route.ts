@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { Status } from '@/generated/prisma/client';
+import { MonitorStatus } from '@/generated/prisma/client';
 
 /**
  * GET /api/tv-shows - List TV shows with optional filters
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         title: true,
         year: true,
         tmdbId: true,
-        status: true,
+        monitorStatus: true,
       },
     });
 
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { title, year, status, notes } = body;
+    const { title, year, monitorStatus, notes, description, posterPath, backdropPath } = body;
 
     if (!title || typeof title !== 'string') {
       return NextResponse.json(
@@ -55,10 +55,13 @@ export async function POST(request: NextRequest) {
       data: {
         title: title.trim(),
         year: year ? parseInt(year, 10) : null,
-        status: status && ['TO_CHECK', 'GOOD', 'BAD', 'DELETED'].includes(status)
-          ? (status as Status)
-          : 'TO_CHECK',
+        monitorStatus: monitorStatus && ['WANTED', 'UNWANTED'].includes(monitorStatus)
+          ? (monitorStatus as MonitorStatus)
+          : 'WANTED',
         notes: notes || null,
+        description: description || null,
+        posterPath: posterPath || null,
+        backdropPath: backdropPath || null,
       },
     });
 

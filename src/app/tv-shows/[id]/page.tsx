@@ -4,11 +4,17 @@ import { prisma } from "@/lib/prisma";
 import { getSettings } from "@/lib/settings";
 import { formatDateWithFormat } from "@/lib/format";
 import { getPosterUrl } from "@/lib/tmdb";
-import { getStatusVariant } from "@/lib/status";
+import {
+  computeEpisodeQuality,
+  computeSeasonQuality,
+  computeShowQuality,
+  getDisplayMonitorStatus,
+} from "@/lib/status";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, Star, Calendar, Tv, Film } from "lucide-react";
 import { TmdbSection } from "./tmdb-section";
 import { ShowEditButton } from "./show-edit-button";
+import { ShowDetailStatusBadges } from "./show-detail-status-badges";
 import { SeasonsList } from "./seasons-list";
 
 export const dynamic = 'force-dynamic';
@@ -31,32 +37,12 @@ export default async function ShowDetailPage({ params }: Props) {
     include: {
       seasons: {
         orderBy: { seasonNumber: "asc" },
-        select: {
-          id: true,
-          seasonNumber: true,
-          tmdbSeasonId: true,
-          name: true,
-          status: true,
-          notes: true,
-          posterPath: true,
-          description: true,
-          airDate: true,
+        include: {
           episodes: {
             orderBy: { episodeNumber: "asc" },
-            select: {
-              id: true,
-              episodeNumber: true,
-              tmdbEpisodeId: true,
-              title: true,
-              status: true,
-              notes: true,
-              description: true,
-              airDate: true,
-              runtime: true,
-              stillPath: true,
-              voteAverage: true,
+            include: {
               files: {
-                select: { id: true },
+                select: { id: true, quality: true },
               },
             },
           },
@@ -68,6 +54,22 @@ export default async function ShowDetailPage({ params }: Props) {
   if (!show) {
     notFound();
   }
+
+  // Compute quality statuses
+  const seasonsWithQuality = show.seasons.map((season) => {
+    const episodesWithQuality = season.episodes.map((episode) => ({
+      ...episode,
+      qualityStatus: computeEpisodeQuality(episode.monitorStatus, episode.files),
+    }));
+    return {
+      ...season,
+      episodes: episodesWithQuality,
+      qualityStatus: computeSeasonQuality(episodesWithQuality),
+    };
+  });
+
+  const displayMonitorStatus = getDisplayMonitorStatus(show.monitorStatus, show.seasons);
+  const qualityStatus = computeShowQuality(seasonsWithQuality);
 
   const totalEpisodes = show.seasons.reduce(
     (acc, season) => acc + season.episodes.length,
@@ -128,15 +130,19 @@ export default async function ShowDetailPage({ params }: Props) {
                   title: show.title,
                   folderName: show.folderName,
                   year: show.year,
-                  status: show.status,
+                  monitorStatus: show.monitorStatus,
                   notes: show.notes,
                   description: show.description,
                   posterPath: show.posterPath,
                   backdropPath: show.backdropPath,
                 }} />
-                <Badge variant={getStatusVariant(show.status)} className="text-sm">
-                  {show.status}
-                </Badge>
+                <ShowDetailStatusBadges
+                  showId={show.id}
+                  monitorStatus={show.monitorStatus}
+                  displayMonitorStatus={displayMonitorStatus}
+                  qualityStatus={qualityStatus}
+                  hasChildren={show.seasons.length > 0}
+                />
               </div>
             </div>
 
@@ -195,7 +201,7 @@ export default async function ShowDetailPage({ params }: Props) {
       {/* Seasons */}
       <div>
         <h2 className="text-2xl font-bold mb-6">Seasons</h2>
-        <SeasonsList showId={show.id} seasons={show.seasons} />
+        <SeasonsList showId={show.id} seasons={seasonsWithQuality} />
       </div>
     </div>
   );
