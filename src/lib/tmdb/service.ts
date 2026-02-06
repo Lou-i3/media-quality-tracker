@@ -146,11 +146,17 @@ export async function matchShow(
 ): Promise<void> {
   const tmdbShow = await getTVShowDetails(tmdbId);
 
+  // Extract year from first air date
+  const year = tmdbShow.first_air_date
+    ? parseInt(tmdbShow.first_air_date.substring(0, 4), 10)
+    : null;
+
   // Update the show with TMDB metadata
   await prisma.tVShow.update({
     where: { id: localShowId },
     data: {
       tmdbId: tmdbShow.id,
+      year: year || undefined, // Only update if we have a year
       posterPath: tmdbShow.poster_path,
       backdropPath: tmdbShow.backdrop_path,
       description: tmdbShow.overview,

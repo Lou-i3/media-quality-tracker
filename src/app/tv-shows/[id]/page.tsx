@@ -9,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChevronRight, Star } from "lucide-react";
 import { TmdbActions } from "./tmdb-actions";
+import { ShowEditButton } from "./show-edit-button";
 
 export const dynamic = 'force-dynamic';
 
@@ -97,6 +98,15 @@ export default async function ShowDetailPage({ params }: Props) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <ShowEditButton show={{
+                  id: show.id,
+                  title: show.title,
+                  folderName: show.folderName,
+                  year: show.year,
+                  status: show.status,
+                  notes: show.notes,
+                  description: show.description,
+                }} />
                 <TmdbActions
                   showId={show.id}
                   showTitle={show.title}
@@ -129,7 +139,7 @@ export default async function ShowDetailPage({ params }: Props) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardContent className="p-6">
             <p className="text-muted-foreground text-sm mb-2">Seasons</p>
@@ -147,6 +157,16 @@ export default async function ShowDetailPage({ params }: Props) {
             <p className="text-muted-foreground text-sm mb-2">Last Updated</p>
             <p className="text-lg font-semibold">
               {formatDateWithFormat(show.updatedAt, dateFormat)}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-6">
+            <p className="text-muted-foreground text-sm mb-2">TMDB Sync</p>
+            <p className="text-lg font-semibold">
+              {show.lastMetadataSync
+                ? formatDateWithFormat(show.lastMetadataSync, dateFormat)
+                : <span className="text-muted-foreground">Not synced</span>}
             </p>
           </CardContent>
         </Card>

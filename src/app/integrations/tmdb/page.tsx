@@ -7,7 +7,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ArrowLeft, RefreshCw, Zap, ExternalLink, CheckCircle2, XCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { TmdbMatchDialog } from '@/components/tmdb-match-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -36,13 +38,16 @@ interface BulkMatchResult {
 }
 
 export default function TmdbIntegrationPage() {
+  const router = useRouter();
   const [status, setStatus] = useState<IntegrationStatus | null>(null);
   const [unmatchedShows, setUnmatchedShows] = useState<UnmatchedShow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [autoMatching, setAutoMatching] = useState(false);
+  const [bulkRefreshing, setBulkRefreshing] = useState(false);
   const [bulkResult, setBulkResult] = useState<BulkMatchResult | null>(null);
+  const [refreshResult, setRefreshResult] = useState<{ refreshed: number; failed: number; total: number } | null>(null);
   const [dateFormat, setDateFormat] = useState<DateFormat>('EU');
 
   const fetchStatus = async (isRefresh = false) => {
@@ -112,6 +117,31 @@ export default function TmdbIntegrationPage() {
       setError(err instanceof Error ? err.message : 'Auto-match failed');
     } finally {
       setAutoMatching(false);
+    }
+  };
+
+  const handleBulkRefresh = async () => {
+    setBulkRefreshing(true);
+    setRefreshResult(null);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/tmdb/bulk-refresh', { method: 'POST' });
+      if (!response.ok) throw new Error('Failed to refresh metadata');
+
+      const data = await response.json();
+      setRefreshResult({
+        refreshed: data.refreshed,
+        failed: data.failed,
+        total: data.total,
+      });
+
+      // Refresh status after bulk refresh
+      await fetchStatus(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Bulk refresh failed');
+    } finally {
+      setBulkRefreshing(false);
     }
   };
 
@@ -334,9 +364,17 @@ export default function TmdbIntegrationPage() {
                   )}
                   {autoMatching ? 'Matching...' : `Auto-Match Unmatched (${status.unmatchedShows})`}
                 </Button>
-                <Button variant="outline" disabled={status.matchedShows === 0}>
-                  <RefreshCw className="size-4 mr-2" />
-                  Refresh All Metadata
+                <Button
+                  variant="outline"
+                  onClick={handleBulkRefresh}
+                  disabled={status.matchedShows === 0 || bulkRefreshing}
+                >
+                  {bulkRefreshing ? (
+                    <Loader2 className="size-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="size-4 mr-2" />
+                  )}
+                  {bulkRefreshing ? 'Refreshing...' : `Refresh All Metadata (${status.matchedShows})`}
                 </Button>
               </div>
 
@@ -349,6 +387,20 @@ export default function TmdbIntegrationPage() {
                     Matched {bulkResult.matched} of {bulkResult.total} shows.
                     {bulkResult.skipped > 0 && (
                       <> {bulkResult.skipped} skipped (low confidence or errors).</>
+                    )}
+                  </p>
+                </div>
+              )}
+
+              {refreshResult && (
+                <div className="rounded-lg border bg-muted/50 p-4">
+                  <p className="font-medium text-green-600">
+                    Metadata refresh complete!
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Refreshed {refreshResult.refreshed} of {refreshResult.total} shows.
+                    {refreshResult.failed > 0 && (
+                      <> {refreshResult.failed} failed.</>
                     )}
                   </p>
                 </div>
@@ -376,7 +428,8 @@ export default function TmdbIntegrationPage() {
                     {unmatchedShows.map((show) => (
                       <div
                         key={show.id}
-                        className="flex items-center justify-between rounded-lg border p-3"
+                        className="flex items-center justify-between rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors"
+                        onClick={() => router.push(`/tv-shows/${show.id}`)}
                       >
                         <div>
                           <span className="font-medium">{show.title}</span>
@@ -384,9 +437,19 @@ export default function TmdbIntegrationPage() {
                             <span className="text-muted-foreground ml-2">({show.year})</span>
                           )}
                         </div>
-                        <Button variant="outline" size="sm" asChild>
-                          <Link href={`/tv-shows/${show.id}`}>Match</Link>
-                        </Button>
+                        <div onClick={(e) => e.stopPropagation()}>
+                          <TmdbMatchDialog
+                            showId={show.id}
+                            showTitle={show.title}
+                            showYear={show.year}
+                            onMatch={() => fetchStatus(true)}
+                            trigger={
+                              <Button variant="outline" size="sm">
+                                Match
+                              </Button>
+                            }
+                          />
+                        </div>
                       </div>
                     ))}
                     {status.unmatchedShows > unmatchedShows.length && (

@@ -17,7 +17,8 @@ import { showNameMatchKey } from './parser';
 
 /** Cache for show lookups during batch processing */
 interface ShowCache {
-  byMatchKey: Map<string, { id: number; title: string; year: number | null }>;
+  byMatchKey: Map<string, { id: number; title: string; folderName: string | null; year: number | null }>;
+  byFolderName: Map<string, { id: number; title: string; folderName: string | null; year: number | null }>;
 }
 
 /** Cache for season lookups during batch processing */
@@ -49,24 +50,31 @@ export interface HierarchyResult {
 export async function findOrCreateHierarchy(
   parsed: ParsedFilename
 ): Promise<HierarchyResult> {
-  // First, try to find existing show by normalized title
-  // We look for shows where the lowercase alphanumeric matches
+  // Load all shows for matching
   const allShows = await prisma.tVShow.findMany({
-    select: { id: true, title: true, year: true },
+    select: { id: true, title: true, folderName: true, year: true },
   });
 
-  const matchKey = showNameMatchKey(parsed.showName);
-  let existingShow = allShows.find(
-    (show) => showNameMatchKey(show.title) === matchKey
-  );
+  // First, try to match by folderName (most reliable for renamed shows)
+  let existingShow = parsed.folderName
+    ? allShows.find((show) => show.folderName === parsed.folderName)
+    : undefined;
 
-  // If we have a year and found a show without year, or vice versa, still match
-  // But prefer exact year match if multiple shows with same name
-  if (!existingShow && parsed.year) {
+  // Fall back to title matching
+  if (!existingShow) {
+    const matchKey = showNameMatchKey(parsed.showName);
     existingShow = allShows.find(
-      (show) =>
-        showNameMatchKey(show.title) === matchKey && show.year === parsed.year
+      (show) => showNameMatchKey(show.title) === matchKey
     );
+
+    // If we have a year and found a show without year, or vice versa, still match
+    // But prefer exact year match if multiple shows with same name
+    if (!existingShow && parsed.year) {
+      existingShow = allShows.find(
+        (show) =>
+          showNameMatchKey(show.title) === matchKey && show.year === parsed.year
+      );
+    }
   }
 
   let showId: number;
@@ -80,11 +88,19 @@ export async function findOrCreateHierarchy(
         data: { year: parsed.year },
       });
     }
+    // Update folderName if we have one and the show doesn't
+    if (parsed.folderName && !existingShow.folderName) {
+      await prisma.tVShow.update({
+        where: { id: showId },
+        data: { folderName: parsed.folderName },
+      });
+    }
   } else {
-    // Create new show
+    // Create new show with folderName
     const newShow = await prisma.tVShow.create({
       data: {
         title: parsed.showName,
+        folderName: parsed.folderName || null,
         year: parsed.year,
       },
     });
@@ -287,7 +303,7 @@ export async function getRecentScans(limit: number = 20) {
  * Processes multiple files in a single transaction to minimize DB locks
  */
 export class BatchProcessor {
-  private showCache: ShowCache = { byMatchKey: new Map() };
+  private showCache: ShowCache = { byMatchKey: new Map(), byFolderName: new Map() };
   private seasonCache: SeasonCache = { byKey: new Map() };
   private episodeCache: EpisodeCache = { byKey: new Map() };
   private fileCache: FileCache = { byPath: new Map() };
@@ -302,11 +318,15 @@ export class BatchProcessor {
 
     // Load all shows
     const shows = await prisma.tVShow.findMany({
-      select: { id: true, title: true, year: true },
+      select: { id: true, title: true, folderName: true, year: true },
     });
     for (const show of shows) {
       const key = showNameMatchKey(show.title);
       this.showCache.byMatchKey.set(key, show);
+      // Also cache by folderName if it exists
+      if (show.folderName) {
+        this.showCache.byFolderName.set(show.folderName, show);
+      }
     }
 
     // Load all seasons
@@ -354,23 +374,56 @@ export class BatchProcessor {
         const { parsed, file } = item;
 
         // 1. Find or create show
-        const showMatchKey = showNameMatchKey(parsed.showName);
-        let showData = this.showCache.byMatchKey.get(showMatchKey);
+        // First try to match by folderName (most reliable for renamed shows)
+        let showData = parsed.folderName
+          ? this.showCache.byFolderName.get(parsed.folderName)
+          : undefined;
+
+        // Fall back to title matching if no folderName match
+        if (!showData) {
+          const showMatchKey = showNameMatchKey(parsed.showName);
+          showData = this.showCache.byMatchKey.get(showMatchKey);
+        }
 
         if (!showData) {
-          // Create new show
+          // Create new show with folderName
           const newShow = await tx.tVShow.create({
-            data: { title: parsed.showName, year: parsed.year },
+            data: {
+              title: parsed.showName,
+              folderName: parsed.folderName || null,
+              year: parsed.year,
+            },
           });
-          showData = { id: newShow.id, title: newShow.title, year: newShow.year };
+          showData = {
+            id: newShow.id,
+            title: newShow.title,
+            folderName: newShow.folderName,
+            year: newShow.year,
+          };
+          // Cache by both matchKey and folderName
+          const showMatchKey = showNameMatchKey(parsed.showName);
           this.showCache.byMatchKey.set(showMatchKey, showData);
-        } else if (parsed.year && !showData.year) {
+          if (parsed.folderName) {
+            this.showCache.byFolderName.set(parsed.folderName, showData);
+          }
+        } else {
           // Update year if we now have one
-          await tx.tVShow.update({
-            where: { id: showData.id },
-            data: { year: parsed.year },
-          });
-          showData.year = parsed.year;
+          if (parsed.year && !showData.year) {
+            await tx.tVShow.update({
+              where: { id: showData.id },
+              data: { year: parsed.year },
+            });
+            showData.year = parsed.year;
+          }
+          // Update folderName if we have one and the show doesn't
+          if (parsed.folderName && !showData.folderName) {
+            await tx.tVShow.update({
+              where: { id: showData.id },
+              data: { folderName: parsed.folderName },
+            });
+            showData.folderName = parsed.folderName;
+            this.showCache.byFolderName.set(parsed.folderName, showData);
+          }
         }
 
         // 2. Find or create season

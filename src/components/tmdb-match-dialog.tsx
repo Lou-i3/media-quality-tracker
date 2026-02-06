@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Search, Loader2, Check, ExternalLink } from 'lucide-react';
+import { Search, Loader2, Check, ExternalLink, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -55,6 +55,7 @@ export function TmdbMatchDialog({
   const [results, setResults] = useState<TMDBSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [matching, setMatching] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Search when dialog opens or query changes
@@ -134,6 +135,26 @@ export function TmdbMatchDialog({
     }
   };
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/tmdb/refresh/${showId}`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) throw new Error('Failed to refresh metadata');
+
+      setOpen(false);
+      onMatch?.();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Refresh failed');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const getConfidenceBadge = (confidence: number) => {
     if (confidence >= 80) return <Badge className="bg-green-600">High Match</Badge>;
     if (confidence >= 50) return <Badge variant="secondary">Possible</Badge>;
@@ -175,18 +196,35 @@ export function TmdbMatchDialog({
               <span className="text-sm">
                 Currently matched to TMDB ID: <strong>{currentTmdbId}</strong>
               </span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleUnmatch}
-                disabled={matching !== null}
-              >
-                {matching === -1 ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  'Unmatch'
-                )}
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleRefresh}
+                  disabled={matching !== null || refreshing}
+                >
+                  {refreshing ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <>
+                      <RefreshCw className="size-4 mr-1" />
+                      Refresh
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleUnmatch}
+                  disabled={matching !== null || refreshing}
+                >
+                  {matching === -1 ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    'Unmatch'
+                  )}
+                </Button>
+              </div>
             </div>
           )}
 
@@ -227,11 +265,12 @@ export function TmdbMatchDialog({
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <h4 className="font-medium leading-tight">{result.tmdbShow.name}</h4>
-                        {result.tmdbShow.first_air_date && (
-                          <p className="text-sm text-muted-foreground">
-                            {result.tmdbShow.first_air_date.substring(0, 4)}
-                          </p>
-                        )}
+                        <p className="text-sm text-muted-foreground">
+                          {result.tmdbShow.first_air_date && (
+                            <>{result.tmdbShow.first_air_date.substring(0, 4)} · </>
+                          )}
+                          <span className="font-mono">ID: {result.tmdbShow.id}</span>
+                        </p>
                       </div>
                       {getConfidenceBadge(result.confidence)}
                     </div>

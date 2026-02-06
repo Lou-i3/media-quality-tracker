@@ -96,6 +96,7 @@ function parsePlexStyle(filepath: string): ParsedFilename | null {
 
   return {
     showName: normalizeShowName(showMatch[1]),
+    folderName: showDir, // Raw folder name on disk
     year: showMatch[2] ? parseInt(showMatch[2], 10) : undefined,
     seasonNumber,
     episodeNumber,
@@ -106,8 +107,9 @@ function parsePlexStyle(filepath: string): ParsedFilename | null {
 /**
  * Try to extract show name from folder structure
  * Looks for "Show Name (Year)" folder above "Season XX" or "Specials" folder
+ * Returns both the normalized name and the raw folder name
  */
-function getShowNameFromFolder(filepath: string): { name: string; year?: number } | null {
+function getShowNameFromFolder(filepath: string): { name: string; folderName: string; year?: number } | null {
   const parts = filepath.split(sep);
 
   // Find season directory (Season XX or Specials)
@@ -118,6 +120,7 @@ function getShowNameFromFolder(filepath: string): { name: string; year?: number 
     if (showMatch) {
       return {
         name: normalizeShowName(showMatch[1]),
+        folderName: showDir, // Raw folder name including year if present
         year: showMatch[2] ? parseInt(showMatch[2], 10) : undefined,
       };
     }
@@ -149,6 +152,7 @@ function parseSxxExx(filepath: string): ParsedFilename | null {
   if (folderInfo) {
     return {
       showName: folderInfo.name,
+      folderName: folderInfo.folderName,
       year: folderInfo.year,
       seasonNumber,
       episodeNumber,

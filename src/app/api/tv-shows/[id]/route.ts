@@ -16,13 +16,15 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
 
     const body = await request.json();
-    const { title, year, status, notes } = body;
+    const { title, folderName, year, status, notes, description } = body;
 
     const updateData: {
       title?: string;
+      folderName?: string | null;
       year?: number | null;
       status?: Status;
       notes?: string | null;
+      description?: string | null;
     } = {};
 
     if (title !== undefined) {
@@ -30,6 +32,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
         return NextResponse.json({ error: 'Title is required' }, { status: 400 });
       }
       updateData.title = title.trim();
+    }
+
+    if (folderName !== undefined) {
+      updateData.folderName = folderName || null;
     }
 
     if (year !== undefined) {
@@ -45,6 +51,10 @@ export async function PATCH(request: NextRequest, { params }: Params) {
 
     if (notes !== undefined) {
       updateData.notes = notes || null;
+    }
+
+    if (description !== undefined) {
+      updateData.description = description || null;
     }
 
     const show = await prisma.tVShow.update({

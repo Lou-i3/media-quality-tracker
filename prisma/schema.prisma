@@ -56,14 +56,15 @@ enum ScanStatus {
 
 // TV Show Models
 model TVShow {
-  id        Int      @id @default(autoincrement())
-  title     String
-  year      Int?
-  tvdbId    String?  @unique
-  tmdbId    Int?     @unique
-  plexId    String?  @unique
-  status    Status   @default(TO_CHECK)
-  notes     String?
+  id         Int      @id @default(autoincrement())
+  title      String
+  folderName String?  // Original folder name on disk (can differ from display title)
+  year       Int?
+  tvdbId     String?  @unique
+  tmdbId     Int?     @unique
+  plexId     String?  @unique
+  status     Status   @default(TO_CHECK)
+  notes      String?
 
   // TMDB Metadata
   posterPath       String?

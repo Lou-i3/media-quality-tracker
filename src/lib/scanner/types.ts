@@ -5,6 +5,7 @@
 /** Parsed information extracted from a TV show filename/path */
 export interface ParsedFilename {
   showName: string;
+  folderName?: string; // Raw folder name on disk (before normalization)
   seasonNumber: number;
   episodeNumber: number;
   episodeTitle?: string;

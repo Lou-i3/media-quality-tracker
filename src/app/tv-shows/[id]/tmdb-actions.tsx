@@ -8,7 +8,6 @@
 import { useRouter } from 'next/navigation';
 import { TmdbMatchDialog } from '@/components/tmdb-match-dialog';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Film, RefreshCw, ExternalLink } from 'lucide-react';
 
 interface TmdbActionsProps {

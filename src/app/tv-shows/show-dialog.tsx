@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -25,14 +26,16 @@ import { Pencil, Plus } from 'lucide-react';
 interface TVShow {
   id: number;
   title: string;
+  folderName?: string | null;
   year: number | null;
   status: string;
   notes: string | null;
+  description?: string | null;
 }
 
 interface TVShowDialogProps {
   show?: TVShow;
-  trigger?: 'icon' | 'button' | 'add';
+  trigger?: 'icon' | 'button' | 'add' | React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
@@ -53,9 +56,11 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
+    folderName: '',
     year: '',
     status: 'TO_CHECK',
     notes: '',
+    description: '',
   });
 
   const isOpen = isControlled ? open : internalOpen;
@@ -66,9 +71,11 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
     if (isOpen) {
       setFormData({
         title: show?.title ?? '',
+        folderName: show?.folderName ?? '',
         year: show?.year?.toString() ?? '',
         status: show?.status ?? 'TO_CHECK',
         notes: show?.notes ?? '',
+        description: show?.description ?? '',
       });
     }
   }, [isOpen, show]);
@@ -80,9 +87,11 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
     try {
       const payload = {
         title: formData.title,
+        folderName: formData.folderName || null,
         year: formData.year ? parseInt(formData.year, 10) : null,
         status: formData.status,
         notes: formData.notes || null,
+        description: formData.description || null,
       };
 
       const response = await fetch(
@@ -124,6 +133,10 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
   };
 
   const renderTrigger = () => {
+    // Custom React node trigger
+    if (trigger && typeof trigger !== 'string') {
+      return trigger;
+    }
     if (trigger === 'add') {
       return (
         <Button>
@@ -164,7 +177,7 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
                 : 'Manually add a TV show to your library.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-4 py-4 max-h-[60vh] overflow-y-auto">
             <div className="grid gap-2">
               <label htmlFor="dialog-title" className="text-sm font-medium">
                 Title
@@ -177,6 +190,22 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
                 required
               />
             </div>
+            {isEdit && (
+              <div className="grid gap-2">
+                <label htmlFor="dialog-folder" className="text-sm font-medium">
+                  Folder Name
+                </label>
+                <Input
+                  id="dialog-folder"
+                  value={formData.folderName}
+                  onChange={(e) => setFormData({ ...formData, folderName: e.target.value })}
+                  placeholder="Original folder name on disk"
+                />
+                <p className="text-xs text-muted-foreground">
+                  The folder name on disk, if different from the display title
+                </p>
+              </div>
+            )}
             <div className="grid gap-2">
               <label htmlFor="dialog-year" className="text-sm font-medium">
                 Year
@@ -212,6 +241,18 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
               </Select>
             </div>
             <div className="grid gap-2">
+              <label htmlFor="dialog-description" className="text-sm font-medium">
+                Description
+              </label>
+              <Textarea
+                id="dialog-description"
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                placeholder="Show description..."
+                rows={3}
+              />
+            </div>
+            <div className="grid gap-2">
               <label htmlFor="dialog-notes" className="text-sm font-medium">
                 Notes
               </label>
@@ -219,7 +260,7 @@ export function TVShowDialog({ show, trigger = 'icon', open, onOpenChange }: TVS
                 id="dialog-notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="Optional notes..."
+                placeholder="Personal notes..."
               />
             </div>
           </div>
