@@ -71,10 +71,11 @@ interface Season {
 
 interface SeasonsListProps {
   showId: number;
+  showTmdbId?: number | null;
   seasons: Season[];
 }
 
-export function SeasonsList({ showId, seasons }: SeasonsListProps) {
+export function SeasonsList({ showId, showTmdbId, seasons }: SeasonsListProps) {
   const router = useRouter();
 
   if (seasons.length === 0) {
@@ -118,10 +119,16 @@ export function SeasonsList({ showId, seasons }: SeasonsListProps) {
                           (Season {season.seasonNumber})
                         </span>
                       )}
-                      {season.tmdbSeasonId && (
-                        <span className="text-xs text-muted-foreground font-normal ml-2">
+                      {season.tmdbSeasonId && showTmdbId && (
+                        <a
+                          href={`https://www.themoviedb.org/tv/${showTmdbId}/season/${season.seasonNumber}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs text-muted-foreground font-normal ml-2 hover:text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
                           #{season.tmdbSeasonId}
-                        </span>
+                        </a>
                       )}
                     </span>
                   </span>
@@ -173,7 +180,18 @@ export function SeasonsList({ showId, seasons }: SeasonsListProps) {
                           E{String(episode.episodeNumber).padStart(2, '0')}
                         </TableCell>
                         <TableCell className="text-muted-foreground text-xs font-mono">
-                          {episode.tmdbEpisodeId ? `#${episode.tmdbEpisodeId}` : '—'}
+                          {episode.tmdbEpisodeId && showTmdbId ? (
+                            <a
+                              href={`https://www.themoviedb.org/tv/${showTmdbId}/season/${season.seasonNumber}/episode/${episode.episodeNumber}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:text-primary hover:underline"
+                            >
+                              #{episode.tmdbEpisodeId}
+                            </a>
+                          ) : (
+                            '—'
+                          )}
                         </TableCell>
                         <TableCell>{episode.title || '—'}</TableCell>
                         <TableCell>
