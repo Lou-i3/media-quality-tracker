@@ -17,11 +17,15 @@ A Next.js web application for tracking media file quality, playback compatibilit
 - **Status Management** - Mark files as TO_CHECK, GOOD, BAD, or DELETED
 - **Real-time Progress** - Live scan progress with percentage and file count
 - **TV Show Management** - Full CRUD operations with search, filter, and grid/table views
+  - Expandable seasons with inline episode tables (no page navigation)
+  - Edit poster/backdrop paths directly in show dialog
+  - Personal notes displayed with styled background
 - **TMDB Integration** - Enrich shows with posters, descriptions, ratings, and air dates from The Movie Database
+  - Dedicated TMDB section on show pages with match status, sync controls
   - Auto-match shows by title and year with confidence scoring
-  - Manual search and match for unmatched shows
+  - Manual search and match with TMDB ID display in results
   - Bulk refresh metadata for all matched shows
-  - Display posters, backdrops, genres, and ratings on show pages
+  - Graceful handling when TMDB is not configured
 - **Settings** - Configurable date format (EU/US/ISO) stored in database
 - **Responsive Sidebar** - Collapsible navigation (Cmd/Ctrl+B), mobile drawer, version display
 - **Dark Mode** - Full dark mode UI with system preference support
@@ -114,7 +118,11 @@ src/
 │   │   ├── page.tsx                # TV Shows list (grid/table)
 │   │   ├── toolbar.tsx             # Search, filter, view toggle
 │   │   ├── show-dialog.tsx         # Create/Edit TV show dialog
-│   │   └── [id]/                   # Show → Season → Episode pages
+│   │   └── [id]/
+│   │       ├── page.tsx            # Show detail with expandable seasons
+│   │       ├── seasons-list.tsx    # Accordion seasons with episode tables
+│   │       ├── tmdb-section.tsx    # TMDB integration controls
+│   │       └── episodes/[episodeId]/ # Episode detail page
 │   └── api/
 │       ├── settings/route.ts       # Settings API
 │       ├── tv-shows/               # TV Shows CRUD
@@ -272,6 +280,8 @@ npx prisma generate  # Generate client
 - [x] Grid/Table view toggle
 - [x] Date format settings (EU/US/ISO)
 - [x] TMDB integration (metadata, posters, auto-match)
+- [x] Expandable seasons with inline episode tables
+- [ ] Import seasons & episodes from TMDB
 - [ ] ffprobe metadata extraction
 - [ ] Movies support
 - [ ] Plex database sync
