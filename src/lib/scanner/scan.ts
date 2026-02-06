@@ -40,10 +40,10 @@ const yieldToEventLoop = (): Promise<void> =>
   new Promise((resolve) => setImmediate(resolve));
 
 /** Batch size for database operations */
-const BATCH_SIZE = 50;
+const BATCH_SIZE = 100;
 
 /** How often to yield during discovery (every N files) */
-const YIELD_INTERVAL = 20;
+const YIELD_INTERVAL = 10;
 
 /**
  * Start a new scan operation
