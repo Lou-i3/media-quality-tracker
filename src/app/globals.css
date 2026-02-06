@@ -199,8 +199,10 @@
   body {
     @apply bg-background text-foreground;
   }
-  button,
-  [role="button"] {
-    cursor: pointer;
-  }
+}
+
+/* Force pointer cursor on all interactive elements - outside @layer for proper specificity */
+button,
+[role="button"] {
+  cursor: pointer;
 }
