@@ -4,6 +4,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { getSettings } from '@/lib/settings';
+import { getConfig } from '@/lib/scanner/config';
 import { ScanControls } from './scan-controls';
 import { ScanHistoryTable } from './scan-history-table';
 
@@ -18,6 +19,17 @@ export default async function ScansPage() {
     getSettings(),
   ]);
 
+  // Get configured paths (safely)
+  let tvShowsPath = '';
+  let moviesPath = '';
+  try {
+    const config = getConfig();
+    tvShowsPath = config.tvShowsPath;
+    moviesPath = config.moviesPath;
+  } catch {
+    // Config not set
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto p-8">
@@ -28,10 +40,12 @@ export default async function ScansPage() {
           </p>
         </header>
 
+        {/* Scan Controls */}
         <section className="mb-8">
-          <ScanControls />
+          <ScanControls tvShowsPath={tvShowsPath} moviesPath={moviesPath} />
         </section>
 
+        {/* Scan History */}
         <section>
           <h2 className="text-2xl font-bold mb-4">Scan History</h2>
           <ScanHistoryTable initialScans={scans} dateFormat={settings.dateFormat} />

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ScanHelpDialog } from './scan-help-dialog';
 
 interface ScanProgress {
   scanId: number;
@@ -15,7 +16,12 @@ interface ScanProgress {
   errors: Array<{ filepath: string; error: string; phase: string }>;
 }
 
-export function ScanControls() {
+interface ScanControlsProps {
+  tvShowsPath?: string;
+  moviesPath?: string;
+}
+
+export function ScanControls({ tvShowsPath, moviesPath }: ScanControlsProps) {
   const [isScanning, setIsScanning] = useState(false);
   const [scanId, setScanId] = useState<number | null>(null);
   const [progress, setProgress] = useState<ScanProgress | null>(null);
@@ -124,10 +130,15 @@ export function ScanControls() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Scan Library</CardTitle>
-        <CardDescription>
-          Scan your TV shows directory to discover new files and update the database
-        </CardDescription>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle>Scan Library</CardTitle>
+            <CardDescription>
+              Scan your TV shows directory to discover new files and update the database
+            </CardDescription>
+          </div>
+          <ScanHelpDialog tvShowsPath={tvShowsPath} moviesPath={moviesPath} />
+        </div>
       </CardHeader>
       <CardContent>
         {error && (
