@@ -67,8 +67,8 @@ COPY --from=prisma-deps /prisma-deps/node_modules ./node_modules
 # Copy package.json for version display
 COPY package.json ./
 
-# Copy worker script for background tasks
-COPY src/lib/tasks/task-worker.js ./task-worker.js
+# Copy worker script for background tasks (built during npm run build)
+COPY --from=builder /app/src/lib/tasks/task-worker.js ./task-worker.js
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh ./
