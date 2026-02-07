@@ -17,19 +17,24 @@ jobs:
         with:
           fetch-depth: 0  # Full history for changelog generation
 
-      - name: Get previous tag
-        id: prev_tag
+      - name: Get tag info
+        id: tag_info
         run: |
           # Get the previous tag (the one before the current tag)
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          echo "tag=${PREV_TAG}" >> $GITHUB_OUTPUT
+          echo "prev_tag=${PREV_TAG}" >> $GITHUB_OUTPUT
           echo "Previous tag: ${PREV_TAG:-'(none - first release)'}"
+
+          # Get the tag message (for release title)
+          TAG_MESSAGE=$(git tag -l --format='%(contents:subject)' ${{ github.ref_name }})
+          echo "message=${TAG_MESSAGE}" >> $GITHUB_OUTPUT
+          echo "Tag message: ${TAG_MESSAGE}"
 
       - name: Generate release notes
         id: release_notes
         run: |
           TAG=${{ github.ref_name }}
-          PREV_TAG="${{ steps.prev_tag.outputs.tag }}"
+          PREV_TAG="${{ steps.tag_info.outputs.prev_tag }}"
           REPO="${{ github.repository }}"
 
           if [ -z "$PREV_TAG" ]; then
@@ -53,7 +58,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          name: ${{ steps.tag_info.outputs.message || github.ref_name }}
           body_path: /tmp/release_notes.md
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
