@@ -31,7 +31,7 @@
 import type { MonitorStatus, FileQuality, Action, TestStatus } from '@/generated/prisma/client';
 
 // Badge variant type (matches shadcn/ui Badge)
-export type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline' | 'warning';
+export type BadgeVariant = 'default' | 'secondary' | 'success' | 'destructive' | 'outline' | 'warning';
 
 // Quality status for display (computed, not stored)
 export type QualityStatus = 'UNVERIFIED' | 'OK' | 'BROKEN' | 'MISSING';
@@ -84,7 +84,7 @@ export const TEST_STATUS_LABELS: Record<TestStatus, string> = {
 export function getMonitorStatusVariant(status: DisplayMonitorStatus): BadgeVariant {
   switch (status) {
     case 'WANTED':
-      return 'default';
+      return 'secondary';
     case 'UNWANTED':
       return 'outline';
     case 'PARTIAL':
@@ -95,7 +95,7 @@ export function getMonitorStatusVariant(status: DisplayMonitorStatus): BadgeVari
 export function getQualityStatusVariant(status: QualityStatus): BadgeVariant {
   switch (status) {
     case 'OK':
-      return 'default';
+      return 'success';
     case 'UNVERIFIED':
       return 'warning';
     case 'BROKEN':
@@ -108,7 +108,7 @@ export function getQualityStatusVariant(status: QualityStatus): BadgeVariant {
 export function getFileQualityVariant(quality: FileQuality): BadgeVariant {
   switch (quality) {
     case 'OK':
-      return 'default';
+      return 'success';
     case 'UNVERIFIED':
       return 'warning';
     case 'BROKEN':
@@ -130,7 +130,7 @@ export function getActionVariant(action: Action): BadgeVariant {
 export function getTestStatusVariant(status: TestStatus): BadgeVariant {
   switch (status) {
     case 'WORKS':
-      return 'default';
+      return 'success';
     case 'PLAYABLE':
       return 'secondary';
     case 'NOT_TESTED':
@@ -146,8 +146,9 @@ export function getStatusVariant(status: string): BadgeVariant {
     case 'GOOD':
     case 'WORKS':
     case 'OK':
+      return 'success';
     case 'WANTED':
-      return 'default';
+      return 'secondary';
     case 'BAD':
     case 'FAILS':
     case 'BROKEN':

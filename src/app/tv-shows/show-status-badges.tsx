@@ -2,14 +2,18 @@
 
 /**
  * ShowStatusBadges - Client component for displaying show status badges
- * Wraps MonitorStatusSelect and QualityStatus badge
+ * Wraps BadgeSelector and QualityStatus badge
  */
 
+import { useRouter } from 'next/navigation';
 import { Badge } from '@/components/ui/badge';
-import { MonitorStatusSelect } from '@/components/monitor-status-select';
+import { BadgeSelector } from '@/components/badge-selector';
 import {
   getQualityStatusVariant,
+  getMonitorStatusVariant,
   QUALITY_STATUS_LABELS,
+  MONITOR_STATUS_LABELS,
+  MONITOR_STATUS_OPTIONS,
   type QualityStatus,
   type DisplayMonitorStatus,
 } from '@/lib/status';
@@ -32,14 +36,29 @@ export function ShowStatusBadges({
   hasChildren = false,
   showQuality = true,
 }: ShowStatusBadgesProps) {
+  const router = useRouter();
+
   return (
     <div className="flex items-center gap-2">
-      <MonitorStatusSelect
-        entityType="show"
-        entityId={showId}
+      <BadgeSelector
         value={monitorStatus}
-        displayValue={displayMonitorStatus}
-        hasChildren={hasChildren}
+        displayLabel={MONITOR_STATUS_LABELS[displayMonitorStatus]}
+        variant={getMonitorStatusVariant(displayMonitorStatus)}
+        getVariant={getMonitorStatusVariant}
+        options={MONITOR_STATUS_OPTIONS}
+        onValueChange={() => {}} // Handled by cascade API call
+        cascadeOptions={{
+          entityType: 'show',
+          entityId: showId,
+          hasChildren,
+          apiEndpoint: '/api/tv-shows',
+          propertyKey: 'monitorStatus',
+          entityLabel: 'show',
+          childrenLabel: 'seasons and episodes',
+          getConfirmationText: (value: string) =>
+            value === 'WANTED' ? 'Change to Wanted' : 'Change to Unwanted',
+        }}
+        onUpdate={() => router.refresh()}
       />
       {showQuality && (
         <Badge variant={getQualityStatusVariant(qualityStatus)}>

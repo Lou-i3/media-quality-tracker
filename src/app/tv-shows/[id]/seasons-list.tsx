@@ -12,6 +12,7 @@ import {
   getQualityStatusVariant,
   getDisplayMonitorStatus,
   MONITOR_STATUS_LABELS,
+  MONITOR_STATUS_OPTIONS,
   QUALITY_STATUS_LABELS,
   type QualityStatus,
 } from '@/lib/status';
@@ -36,7 +37,7 @@ import {
 import { ChevronRight } from 'lucide-react';
 import { SeasonDialog } from './season-dialog';
 import { EpisodeDialog } from './episode-dialog';
-import { MonitorStatusSelect } from '@/components/monitor-status-select';
+import { BadgeSelector } from '@/components/badge-selector';
 import type { MonitorStatus } from '@/generated/prisma/client';
 
 interface Episode {
@@ -136,12 +137,25 @@ export function SeasonsList({ showId, showTmdbId, seasons }: SeasonsListProps) {
                     <span className="text-sm text-muted-foreground">
                       {season.episodes.length} episodes
                     </span>
-                    <MonitorStatusSelect
-                      entityType="season"
-                      entityId={season.id}
+                    <BadgeSelector
                       value={season.monitorStatus}
-                      displayValue={seasonDisplayMonitor}
-                      hasChildren={season.episodes.length > 0}
+                      displayLabel={MONITOR_STATUS_LABELS[seasonDisplayMonitor]}
+                      variant={getMonitorStatusVariant(seasonDisplayMonitor)}
+                      getVariant={getMonitorStatusVariant}
+                      options={MONITOR_STATUS_OPTIONS}
+                      onValueChange={() => {}} // Handled by cascade API call
+                      cascadeOptions={{
+                        entityType: 'season',
+                        entityId: season.id,
+                        hasChildren: season.episodes.length > 0,
+                        apiEndpoint: '/api/seasons',
+                        propertyKey: 'monitorStatus',
+                        entityLabel: 'season',
+                        childrenLabel: 'episodes',
+                        getConfirmationText: (value: string) =>
+                          value === 'WANTED' ? 'Change to Wanted' : 'Change to Unwanted',
+                      }}
+                      onUpdate={() => router.refresh()}
                     />
                     {season.monitorStatus !== 'UNWANTED' && (
                       <Badge variant={getQualityStatusVariant(season.qualityStatus)}>
@@ -195,11 +209,25 @@ export function SeasonsList({ showId, showTmdbId, seasons }: SeasonsListProps) {
                         </TableCell>
                         <TableCell>{episode.title || '—'}</TableCell>
                         <TableCell>
-                          <MonitorStatusSelect
-                            entityType="episode"
-                            entityId={episode.id}
+                          <BadgeSelector
                             value={episode.monitorStatus}
-                            displayValue={episode.monitorStatus}
+                            displayLabel={MONITOR_STATUS_LABELS[episode.monitorStatus]}
+                            variant={getMonitorStatusVariant(episode.monitorStatus)}
+                            getVariant={getMonitorStatusVariant}
+                            options={MONITOR_STATUS_OPTIONS}
+                            onValueChange={() => {}} // Handled by cascade API call
+                            cascadeOptions={{
+                              entityType: 'episode',
+                              entityId: episode.id,
+                              hasChildren: false,
+                              apiEndpoint: '/api/episodes',
+                              propertyKey: 'monitorStatus',
+                              entityLabel: 'episode',
+                              childrenLabel: '',
+                              getConfirmationText: (value: string) =>
+                                value === 'WANTED' ? 'Change to Wanted' : 'Change to Unwanted',
+                            }}
+                            onUpdate={() => router.refresh()}
                             className="text-xs"
                           />
                         </TableCell>

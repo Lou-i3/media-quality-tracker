@@ -4,15 +4,16 @@
  * File Status Badge Components
  *
  * Clickable badges for managing file quality, action, and compatibility test status.
- * Uses StatusSelect which handles optimistic updates internally - changes appear
+ * Uses BadgeSelector which handles optimistic updates internally - changes appear
  * immediately while API calls complete in the background.
  */
 
 import { useRouter } from 'next/navigation';
-import { StatusSelect } from '@/components/status-select';
+import { BadgeSelector } from '@/components/badge-selector';
 import {
   getFileQualityVariant,
   getTestStatusVariant,
+  getActionVariant,
   FILE_QUALITY_OPTIONS,
   ACTION_OPTIONS,
   TEST_STATUS_OPTIONS,
@@ -63,20 +64,22 @@ export function FileStatusBadges({ fileId, quality, action }: FileStatusBadgesPr
     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
       <div>
         <p className="text-muted-foreground text-xs mb-1">Quality</p>
-        <StatusSelect
+        <BadgeSelector
           value={quality}
           displayLabel={FILE_QUALITY_LABELS[quality]}
           variant={getFileQualityVariant(quality)}
+          getVariant={getFileQualityVariant}
           options={FILE_QUALITY_OPTIONS}
           onValueChange={handleQualityChange}
         />
       </div>
       <div>
         <p className="text-muted-foreground text-xs mb-1">Action</p>
-        <StatusSelect
+        <BadgeSelector
           value={action}
           displayLabel={ACTION_LABELS[action]}
-          variant="outline"
+          variant={getActionVariant(action)}
+          getVariant={getActionVariant}
           options={ACTION_OPTIONS}
           onValueChange={handleActionChange}
         />
@@ -109,10 +112,11 @@ export function CompatibilityTestBadge({ testId, platform, status }: Compatibili
   };
 
   return (
-    <StatusSelect
+    <BadgeSelector
       value={status}
       displayLabel={`${platform}: ${TEST_STATUS_LABELS[status]}`}
       variant={getTestStatusVariant(status)}
+      getVariant={getTestStatusVariant}
       options={TEST_STATUS_OPTIONS}
       onValueChange={handleStatusChange}
     />
