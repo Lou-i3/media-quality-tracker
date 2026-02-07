@@ -136,6 +136,13 @@ export default async function ShowDetailPage({ params }: Props) {
                 </div>
               </div>
               <div className="flex items-center gap-2">
+                <ShowDetailStatusBadges
+                  showId={show.id}
+                  monitorStatus={show.monitorStatus}
+                  displayMonitorStatus={displayMonitorStatus}
+                  qualityStatus={qualityStatus}
+                  hasChildren={show.seasons.length > 0}
+                />
                 <ShowEditButton show={{
                   id: show.id,
                   title: show.title,
@@ -147,13 +154,6 @@ export default async function ShowDetailPage({ params }: Props) {
                   posterPath: show.posterPath,
                   backdropPath: show.backdropPath,
                 }} />
-                <ShowDetailStatusBadges
-                  showId={show.id}
-                  monitorStatus={show.monitorStatus}
-                  displayMonitorStatus={displayMonitorStatus}
-                  qualityStatus={qualityStatus}
-                  hasChildren={show.seasons.length > 0}
-                />
               </div>
             </div>
 
