@@ -1,24 +1,146 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { MonitorStatus } from '@/generated/prisma/client';
+import { MonitorStatus, FileQuality } from '@/generated/prisma/client';
+import {
+  computeEpisodeQuality,
+  computeSeasonQuality,
+  computeShowQuality,
+  getDisplayMonitorStatus,
+  type QualityStatus,
+  type DisplayMonitorStatus,
+} from '@/lib/status';
 
 type TmdbStatus = 'all' | 'unmatched' | 'needs-sync' | 'fully-synced';
+
+export interface TVShowListItem {
+  id: number;
+  title: string;
+  year: number | null;
+  description: string | null;
+  notes: string | null;
+  posterPath: string | null;
+  tmdbId: number | null;
+  voteAverage: number | null;
+  monitorStatus: MonitorStatus;
+  displayMonitorStatus: DisplayMonitorStatus;
+  qualityStatus: QualityStatus;
+  seasonCount: number;
+  episodeCount: number;
+  fileCount: number;
+  totalSize: string; // BigInt serialized as string
+}
 
 /**
  * GET /api/tv-shows - List TV shows with optional filters
  * Query params:
+ * - q: search term for title
+ * - monitor: filter by monitor status (WANTED, UNWANTED, all)
+ * - full: "true" to include quality status and file stats (for list view)
  * - unmatched: "true" to filter shows without TMDB match (legacy, prefer tmdbStatus)
  * - tmdbStatus: "all" | "unmatched" | "needs-sync" | "fully-synced"
  * - includeStats: "true" to include season/episode sync counts
- * - limit: number of results (default 50)
+ * - limit: number of results (default: no limit for full, 50 for others)
  */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
+    const q = searchParams.get('q');
+    const monitor = searchParams.get('monitor');
+    const full = searchParams.get('full') === 'true';
     const unmatched = searchParams.get('unmatched') === 'true';
     const tmdbStatus = (searchParams.get('tmdbStatus') as TmdbStatus) || 'all';
     const includeStats = searchParams.get('includeStats') === 'true';
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
+    const defaultLimit = full ? 9999 : 50;
+    const limit = parseInt(searchParams.get('limit') || String(defaultLimit), 10);
+
+    // Full query for list view with quality status and file stats
+    if (full) {
+      const where = {
+        ...(q ? { title: { contains: q } } : {}),
+        ...(monitor && monitor !== 'all' ? { monitorStatus: monitor as MonitorStatus } : {}),
+      };
+
+      const shows = await prisma.tVShow.findMany({
+        where,
+        take: limit,
+        orderBy: { title: 'asc' },
+        select: {
+          id: true,
+          title: true,
+          year: true,
+          description: true,
+          notes: true,
+          posterPath: true,
+          tmdbId: true,
+          voteAverage: true,
+          monitorStatus: true,
+          seasons: {
+            select: {
+              monitorStatus: true,
+              episodes: {
+                select: {
+                  monitorStatus: true,
+                  files: {
+                    select: {
+                      quality: true,
+                      fileSize: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const items: TVShowListItem[] = shows.map((show) => {
+        let fileCount = 0;
+        let totalSize = BigInt(0);
+
+        const seasonsWithQuality = show.seasons.map((season) => {
+          const episodesWithQuality = season.episodes.map((episode) => {
+            fileCount += episode.files.length;
+            for (const file of episode.files) {
+              totalSize += file.fileSize;
+            }
+            return {
+              qualityStatus: computeEpisodeQuality(
+                episode.monitorStatus,
+                episode.files as { quality: FileQuality }[]
+              ),
+            };
+          });
+          return {
+            monitorStatus: season.monitorStatus,
+            qualityStatus: computeSeasonQuality(episodesWithQuality),
+          };
+        });
+
+        const displayMonitorStatus = getDisplayMonitorStatus(show.monitorStatus, show.seasons);
+        const qualityStatus = computeShowQuality(seasonsWithQuality);
+        const episodeCount = show.seasons.reduce((acc, s) => acc + s.episodes.length, 0);
+
+        return {
+          id: show.id,
+          title: show.title,
+          year: show.year,
+          description: show.description,
+          notes: show.notes,
+          posterPath: show.posterPath,
+          tmdbId: show.tmdbId,
+          voteAverage: show.voteAverage,
+          monitorStatus: show.monitorStatus,
+          displayMonitorStatus,
+          qualityStatus,
+          seasonCount: show.seasons.length,
+          episodeCount,
+          fileCount,
+          totalSize: totalSize.toString(),
+        };
+      });
+
+      return NextResponse.json({ shows: items, count: items.length });
+    }
 
     // Build where clause based on tmdbStatus
     let where: Record<string, unknown> = {};

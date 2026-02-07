@@ -51,3 +51,27 @@ export const DATE_FORMAT_OPTIONS = [
   { value: 'US', label: 'American (MM/DD/YYYY)', example: '02/05/2026' },
   { value: 'ISO', label: 'ISO (YYYY-MM-DD)', example: '2026-02-05' },
 ] as const;
+
+/**
+ * Format file size for display (client-safe)
+ */
+export function formatFileSize(bytes: bigint | number): string {
+  const num = typeof bytes === 'bigint' ? Number(bytes) : bytes;
+  if (num < 1024) return `${num} B`;
+  if (num < 1024 * 1024) return `${(num / 1024).toFixed(1)} KB`;
+  if (num < 1024 * 1024 * 1024) return `${(num / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(num / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+/**
+ * Format duration in seconds to human readable (client-safe)
+ */
+export function formatDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${secs}s`;
+  }
+  return `${minutes}m ${secs}s`;
+}
