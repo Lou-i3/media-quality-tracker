@@ -34,14 +34,16 @@ jobs:
 
           if [ -z "$PREV_TAG" ]; then
             echo "First release - including all commits"
-            COMMITS=$(git log --pretty=format:"- %s ([%h](https://github.com/${REPO}/commit/%H))" --reverse)
+            COMMITS=$(git log --pretty=format:"- %s ([%h](https://github.com/${REPO}/commit/%H))")
           else
             echo "Generating changelog from ${PREV_TAG} to ${TAG}"
-            COMMITS=$(git log ${PREV_TAG}..${TAG} --pretty=format:"- %s ([%h](https://github.com/${REPO}/commit/%H))" --reverse)
+            COMMITS=$(git log ${PREV_TAG}..${TAG} --pretty=format:"- %s ([%h](https://github.com/${REPO}/commit/%H))")
           fi
 
-          # Write commits to file for multiline support
-          echo "$COMMITS" > /tmp/release_notes.md
+          # Write header and commits to file
+          echo "## Commits in this release" > /tmp/release_notes.md
+          echo "" >> /tmp/release_notes.md
+          echo "$COMMITS" >> /tmp/release_notes.md
 
           # Show what will be included
           echo "Release notes:"
