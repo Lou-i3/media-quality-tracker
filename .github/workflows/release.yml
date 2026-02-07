@@ -17,6 +17,9 @@ jobs:
         with:
           fetch-depth: 0  # Full history for changelog generation
 
+      - name: Fetch tags with annotations
+        run: git fetch --tags --force
+
       - name: Get tag info
         id: tag_info
         run: |
@@ -26,10 +29,10 @@ jobs:
           echo "Previous tag: ${PREV_TAG:-'(none - first release)'}"
 
           # Get the annotated tag message (for release title)
-          # Use git for-each-ref which reliably extracts the tag annotation
-          TAG_MESSAGE=$(git for-each-ref --format='%(contents:subject)' "refs/tags/${{ github.ref_name }}")
+          # Use git cat-file to read the tag object and extract the message
+          TAG_MESSAGE=$(git cat-file tag "${{ github.ref_name }}" 2>/dev/null | sed -n '/^$/,$p' | sed '1d' | head -1)
           echo "message=${TAG_MESSAGE}" >> $GITHUB_OUTPUT
-          echo "Tag message: ${TAG_MESSAGE}"
+          echo "Tag message: ${TAG_MESSAGE:-'(none)'}"
 
       - name: Generate release notes
         id: release_notes
