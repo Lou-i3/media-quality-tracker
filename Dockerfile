@@ -64,6 +64,9 @@ COPY prisma.config.ts ./
 # Copy Prisma CLI dependencies from dedicated stage
 COPY --from=prisma-deps /prisma-deps/node_modules ./node_modules
 
+# Copy generated Prisma client from builder (required for worker threads)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
 # Copy package.json for version display
 COPY package.json ./
 

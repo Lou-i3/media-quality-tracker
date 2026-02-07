@@ -44,12 +44,12 @@ else
 fi
 
 # Ensure data directory exists and has correct permissions
-mkdir -p /app/data /app/logs
+mkdir -p /app/data /app/logs /app/.next/cache
 
 # Fix ownership of data directory and all contents (including existing db files)
 echo "Setting ownership of /app/data to $PUID:$PGID..."
-chown -R "$PUID:$PGID" /app/data /app/logs
-chmod 755 /app/data /app/logs
+chown -R "$PUID:$PGID" /app/data /app/logs /app/.next/cache
+chmod 755 /app/data /app/logs /app/.next/cache
 
 # Debug: show what's in the data directory
 ls -la /app/data/ 2>/dev/null || true
