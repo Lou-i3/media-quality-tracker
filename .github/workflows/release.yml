@@ -25,8 +25,9 @@ jobs:
           echo "prev_tag=${PREV_TAG}" >> $GITHUB_OUTPUT
           echo "Previous tag: ${PREV_TAG:-'(none - first release)'}"
 
-          # Get the tag message (for release title)
-          TAG_MESSAGE=$(git tag -l --format='%(contents:subject)' ${{ github.ref_name }})
+          # Get the annotated tag message (for release title)
+          # Use git for-each-ref which reliably extracts the tag annotation
+          TAG_MESSAGE=$(git for-each-ref --format='%(contents:subject)' "refs/tags/${{ github.ref_name }}")
           echo "message=${TAG_MESSAGE}" >> $GITHUB_OUTPUT
           echo "Tag message: ${TAG_MESSAGE}"
 
