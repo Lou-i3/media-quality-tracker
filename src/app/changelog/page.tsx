@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { RefreshCw, ExternalLink } from 'lucide-react';
-import { formatDateWithFormat, type DateFormat } from '@/lib/settings-shared';
+import { formatDateTimeWithFormat, type DateFormat } from '@/lib/settings-shared';
 
 interface GitHubRelease {
   id: number;
@@ -104,7 +104,7 @@ export default function ChangelogPage() {
 }
 
 function ReleaseCard({ release, dateFormat }: { release: GitHubRelease; dateFormat: DateFormat }) {
-  const publishedDate = formatDateWithFormat(new Date(release.published_at), dateFormat);
+  const publishedDate = formatDateTimeWithFormat(new Date(release.published_at), dateFormat);
 
   return (
     <Card>
