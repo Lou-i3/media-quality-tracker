@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 
-type UpdateStatus = 'loading' | 'up-to-date' | 'update-available' | 'error';
+type UpdateStatus = 'loading' | 'up-to-date' | 'update-available' | 'no-releases' | 'error';
 
 interface VersionState {
   status: UpdateStatus;
@@ -43,8 +43,11 @@ export function VersionBadge({ pathname }: VersionBadgeProps) {
         );
 
         if (!res.ok) {
-          // No releases yet or API error - silently fail
-          setState({ status: 'error', latestVersion: null });
+          // 404 = no releases yet, other = API error
+          setState({
+            status: res.status === 404 ? 'no-releases' : 'error',
+            latestVersion: null
+          });
           return;
         }
 
@@ -95,16 +98,27 @@ export function VersionBadge({ pathname }: VersionBadgeProps) {
 
 function StatusIndicator({ status }: { status: UpdateStatus }) {
   switch (status) {
+    case 'loading':
+      return (
+        <span className="size-2 rounded-full bg-muted-foreground/30 animate-pulse" aria-label="Checking..." />
+      );
     case 'up-to-date':
       return (
-        <span className="size-2 rounded-full bg-success" aria-label="Up to date" />
+        <span className="size-2 rounded-full bg-green-500" aria-label="Up to date" />
       );
     case 'update-available':
       return (
-        <span className="size-2 rounded-full bg-warning animate-pulse" aria-label="Update available" />
+        <span className="size-2 rounded-full bg-amber-500 animate-pulse" aria-label="Update available" />
+      );
+    case 'no-releases':
+      return (
+        <span className="size-2 rounded-full bg-muted-foreground/50" aria-label="No releases yet" />
+      );
+    case 'error':
+      return (
+        <span className="size-2 rounded-full bg-red-500/50" aria-label="Error checking updates" />
       );
     default:
-      // loading or error - no indicator
       return null;
   }
 }
@@ -117,6 +131,8 @@ function getTooltipText(status: UpdateStatus, latestVersion: string | null, curr
       return `v${currentVersion} - Up to date`;
     case 'update-available':
       return `v${currentVersion} - Update available: v${latestVersion}`;
+    case 'no-releases':
+      return `v${currentVersion} - No releases published yet`;
     default:
       return `v${currentVersion} - View changelog`;
   }
