@@ -146,20 +146,17 @@ export function ScanHistoryTable({ initialScans, dateFormat }: Props) {
                 <TableRow key={`${scan.id}-errors`}>
                   <TableCell colSpan={9} className="bg-muted/50">
                     <div className="py-2 space-y-1">
-                      <p className="text-sm font-medium mb-2">Errors:</p>
-                      {errors.slice(0, 10).map((err, idx) => (
-                        <p key={idx} className="text-xs text-muted-foreground">
-                          <span className="text-destructive">{err.error}</span>
-                          {err.filepath && (
-                            <span className="ml-2 truncate block">{err.filepath}</span>
-                          )}
-                        </p>
-                      ))}
-                      {errors.length > 10 && (
-                        <p className="text-xs text-muted-foreground">
-                          ...and {errors.length - 10} more
-                        </p>
-                      )}
+                      <p className="text-sm font-medium mb-2">Errors ({errors.length}):</p>
+                      <div className="max-h-64 overflow-y-auto space-y-1">
+                        {errors.map((err, idx) => (
+                          <p key={idx} className="text-xs text-muted-foreground">
+                            <span className="text-destructive">{err.error}</span>
+                            {err.filepath && (
+                              <span className="ml-2 truncate block">{err.filepath}</span>
+                            )}
+                          </p>
+                        ))}
+                      </div>
                     </div>
                   </TableCell>
                 </TableRow>
