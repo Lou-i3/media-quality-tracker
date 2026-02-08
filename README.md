@@ -281,6 +281,7 @@ src/
 ├── components/
 │   ├── app-sidebar.tsx             # Collapsible navigation sidebar
 │   ├── version-badge.tsx           # Version display with update indicator
+│   ├── badge-selector.tsx          # Unified status badge selector with cascade support
 │   ├── task-progress.tsx           # Real-time task progress display
 │   ├── tmdb-match-dialog.tsx       # Search & match show to TMDB
 │   ├── tmdb-import-dialog.tsx      # Import seasons/episodes from TMDB
@@ -497,8 +498,11 @@ Stored on individual files. Can be auto-computed from playback tests.
 
 All status badges are clickable and open dropdowns to change values:
 
-- **StatusSelect**: Generic status selector for any status type
-- **MonitorStatusSelect**: Specialized selector with cascade confirmation dialog
+- **BadgeSelector**: Unified component for status selection with dropdown menus
+  - Supports optimistic updates for immediate visual feedback
+  - Optional cascade confirmation dialog for hierarchical entities (shows → seasons → episodes)
+  - Works with any status type (monitor status, quality status, file actions, etc.)
+  - Located at `src/components/badge-selector.tsx`
 
 ## Tech Stack
 
