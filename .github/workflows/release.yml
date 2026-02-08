@@ -62,7 +62,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: ${{ steps.tag_info.outputs.message || github.ref_name }}
+          name: ${{ steps.tag_info.outputs.message && format('{0} - {1}', github.ref_name, steps.tag_info.outputs.message) || github.ref_name }}
           body_path: /tmp/release_notes.md
           draft: false
           prerelease: ${{ contains(github.ref_name, '-') }}
