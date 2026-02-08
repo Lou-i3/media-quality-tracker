@@ -6,11 +6,11 @@
 
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { TMDB_CONFIG } from '@/lib/tmdb/config';
+import { getTmdbApiKey, isTmdbConfigured } from '@/lib/tmdb/config';
 import { createTmdbTask, runInWorker, ensureSettingsLoaded } from '@/lib/tasks';
 
 export async function POST() {
-  if (!TMDB_CONFIG.apiKey) {
+  if (!isTmdbConfigured()) {
     return NextResponse.json(
       { error: 'TMDB API key not configured' },
       { status: 400 }
@@ -41,7 +41,7 @@ export async function POST() {
 
     // Run task in a separate worker thread
     runInWorker(tracker.getTaskId(), 'tmdb-bulk-refresh', {
-      apiKey: TMDB_CONFIG.apiKey,
+      apiKey: getTmdbApiKey(),
       shows: matchedShows,
     }, tracker);
 

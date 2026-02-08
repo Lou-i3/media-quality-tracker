@@ -8,7 +8,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { isTmdbConfigured } from '@/lib/tmdb';
-import { TMDB_CONFIG } from '@/lib/tmdb/config';
+import { getTmdbApiKey } from '@/lib/tmdb/config';
 import { createTmdbTask, runInWorker, ensureSettingsLoaded } from '@/lib/tasks';
 
 export async function POST() {
@@ -42,7 +42,7 @@ export async function POST() {
 
     // Run task in a separate worker thread
     runInWorker(tracker.getTaskId(), 'tmdb-bulk-match', {
-      apiKey: TMDB_CONFIG.apiKey,
+      apiKey: getTmdbApiKey(),
       shows: unmatchedShows,
     }, tracker);
 

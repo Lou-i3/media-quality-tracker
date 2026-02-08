@@ -3,7 +3,7 @@
  * Handles authentication, rate limiting, and error handling for TMDB API calls
  */
 
-import { TMDB_CONFIG, isTmdbConfigured } from './config';
+import { TMDB_CONFIG, isTmdbConfigured, getTmdbApiKey } from './config';
 import type {
   TMDBSearchResponse,
   TMDBShowDetails,
@@ -85,7 +85,7 @@ async function tmdbFetch<T>(endpoint: string, params?: Record<string, string>): 
 
   const response = await fetch(url.toString(), {
     headers: {
-      Authorization: `Bearer ${TMDB_CONFIG.apiKey}`,
+      Authorization: `Bearer ${getTmdbApiKey()}`,
       'Content-Type': 'application/json',
     },
   });

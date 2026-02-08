@@ -7,7 +7,7 @@
 
 import { NextResponse } from 'next/server';
 import { isTmdbConfigured, getShowsNeedingSync } from '@/lib/tmdb';
-import { TMDB_CONFIG } from '@/lib/tmdb/config';
+import { getTmdbApiKey } from '@/lib/tmdb/config';
 import { createTmdbTask, runInWorker, ensureSettingsLoaded } from '@/lib/tasks';
 
 export async function POST() {
@@ -38,7 +38,7 @@ export async function POST() {
 
     // Run task in a separate worker thread
     runInWorker(tracker.getTaskId(), 'tmdb-refresh-missing', {
-      apiKey: TMDB_CONFIG.apiKey,
+      apiKey: getTmdbApiKey(),
       shows: showsNeedingSync,
     }, tracker);
 
