@@ -2,9 +2,10 @@
 
 [![GitHub](https://img.shields.io/github/license/Lou-i3/curatr-app)](https://github.com/Lou-i3/curatr-app/blob/main/LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
+[![Self-Hosted](https://img.shields.io/badge/Self--Hosted-Docker-blue)](https://docs.docker.com/)
 [![Vibe Coded](https://img.shields.io/badge/vibe%20coded-Claude-blueviolet)](https://claude.ai)
 
-A Next.js web application for tracking media file quality, playback compatibility, and maintenance status across a Plex media library.
+A **self-hosted** web application for tracking media file quality, playback compatibility, and maintenance status across your Plex media library. Deploy on your own server with Docker and keep full control of your data.
 
 ## Features
 
@@ -52,6 +53,15 @@ A Next.js web application for tracking media file quality, playback compatibilit
 - **Responsive Sidebar** - Collapsible navigation (Cmd/Ctrl+B), mobile drawer, version display
 - **Dark Mode** - Full dark mode UI with system preference support
 - **Custom Theme** - Nunito font, green accent colors, consistent design
+
+## Self-Hosted
+
+Curatr is designed to run on your own hardware - no cloud services or subscriptions required. Your media library data stays entirely on your server.
+
+- **Full Privacy**: All data stored locally in SQLite
+- **No Account Required**: No sign-ups, no external services (TMDB integration is optional)
+- **Docker Ready**: Single container deployment with volume mounts for your media
+- **Resource Friendly**: Lightweight Next.js app with ~420MB Docker image
 
 ## Quick Start
 

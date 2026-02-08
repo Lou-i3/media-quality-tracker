@@ -18,7 +18,9 @@
     "quality",
     "tracker",
     "nextjs",
-    "prisma"
+    "prisma",
+    "files",
+    "self-hosted"
   ],
   "private": true,
   "scripts": {
