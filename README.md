@@ -516,6 +516,9 @@ View the [Changelog](/changelog) page in the app to see all releases. The versio
 - [ ] Mobile responsive design improvements
 - [ ] Add manifest for PWA support
 - [ ] ffprobe metadata extraction
+- [ ] Refactor codebase to store prisma client in the default location
+- [ ] Check modules utilization and relevance and remove unused ones
+- [ ] Transform API documentation into a swagger
 - [ ] Movies support
 - [ ] Plex database sync
 - [ ] Bulk status operations
