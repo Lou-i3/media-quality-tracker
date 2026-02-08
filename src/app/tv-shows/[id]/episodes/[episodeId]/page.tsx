@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { formatFileSize, formatDuration, formatDateWithFormat } from "@/lib/format";
-import { computeEpisodeQuality } from "@/lib/status";
+import { formatFileSize, formatDuration, formatDateWithFormat, formatDateTimeWithFormat } from "@/lib/format";
+import { computeEpisodeQuality, getPlaybackStatusVariant, PLAYBACK_STATUS_LABELS } from "@/lib/status";
 import { getSettings } from "@/lib/settings";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight, FileCheck, FileX, Clock, HardDrive } from "lucide-react";
+import { ChevronRight, FileCheck, FileX, Clock, HardDrive, Calendar } from "lucide-react";
 import { EpisodeDetailStatusBadges } from "./episode-detail-status-badges";
-import { FileStatusBadges, CompatibilityTestBadge } from "./file-status-badges";
+import { FileStatusBadges } from "./file-status-badges";
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +39,14 @@ export default async function EpisodeDetailPage({ params }: Props) {
       },
       files: {
         include: {
-          compatibilityTests: true,
+          playbackTests: {
+            include: {
+              platform: true,
+            },
+            orderBy: {
+              testedAt: 'desc',
+            },
+          },
         },
       },
     },
@@ -257,18 +264,33 @@ export default async function EpisodeDetailPage({ params }: Props) {
                     </div>
                   )}
 
-                  {/* Compatibility Tests */}
-                  {file.compatibilityTests.length > 0 && (
+                  {/* Playback Tests */}
+                  {file.playbackTests.length > 0 && (
                     <div>
-                      <h4 className="text-sm font-medium mb-3">Compatibility Tests</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {file.compatibilityTests.map((test) => (
-                          <CompatibilityTestBadge
-                            key={test.id}
-                            testId={test.id}
-                            platform={test.platform}
-                            status={test.status}
-                          />
+                      <h4 className="text-sm font-medium mb-3">Playback Tests</h4>
+                      <div className="space-y-2">
+                        {file.playbackTests.map((test) => (
+                          <div key={test.id} className="border rounded-lg p-3 space-y-2">
+                            {/* Line 1: Platform */}
+                            <div className="font-medium text-sm">
+                              {test.platform.name}
+                            </div>
+                            {/* Line 2: Status, Date, Notes */}
+                            <div className="flex items-center gap-4 flex-wrap">
+                              <Badge variant={getPlaybackStatusVariant(test.status)}>
+                                {PLAYBACK_STATUS_LABELS[test.status]}
+                              </Badge>
+                              <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                {formatDateTimeWithFormat(test.testedAt, dateFormat)}
+                              </div>
+                              {test.notes && (
+                                <span className="text-xs text-muted-foreground">
+                                  {test.notes}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         ))}
                       </div>
                     </div>

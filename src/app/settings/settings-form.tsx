@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PlatformSettings } from './platform-settings';
 import {
   Select,
   SelectContent,
@@ -111,6 +112,18 @@ export function SettingsForm({ initialSettings }: SettingsFormProps) {
               Higher values process faster but use more resources.
             </p>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Playback Testing</CardTitle>
+          <CardDescription>
+            Configure platforms for testing file playback compatibility
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <PlatformSettings />
         </CardContent>
       </Card>
 

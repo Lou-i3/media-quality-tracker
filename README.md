@@ -42,7 +42,13 @@ A Next.js web application for tracking media file quality, playback compatibilit
   - Sidebar indicator shows running task count
   - Dedicated /tasks page for task management
   - 1-hour task retention for review after completion
-- **Settings** - Configurable date format (EU/US/ISO) and max parallel tasks
+- **Playback Testing** - Record and track playback compatibility across platforms
+  - Configurable platforms (TV, Web Player, Mobile, custom)
+  - Mark platforms as required for quality verification
+  - Auto-compute file quality: VERIFIED when all required platforms pass
+  - Test history with notes and timestamps
+  - Add/edit/delete tests from episode list or detail pages
+- **Settings** - Configurable date format (EU/US/ISO), max parallel tasks, and playback platforms
 - **Responsive Sidebar** - Collapsible navigation (Cmd/Ctrl+B), mobile drawer, version display
 - **Dark Mode** - Full dark mode UI with system preference support
 - **Custom Theme** - Nunito font, green accent colors, consistent design
@@ -129,7 +135,8 @@ src/
 │   ├── tasks/
 │   │   └── page.tsx                # Background tasks management
 │   ├── settings/
-│   │   └── page.tsx                # Settings page
+│   │   ├── page.tsx                # Settings page
+│   │   └── platform-settings.tsx   # Platform management component
 │   ├── changelog/
 │   │   └── page.tsx                # Changelog (GitHub releases)
 │   ├── integrations/
@@ -146,7 +153,11 @@ src/
 │   │       ├── seasons-list.tsx    # Accordion seasons with episode tables
 │   │       ├── tmdb-section.tsx    # TMDB integration controls
 │   │       ├── tmdb-help-dialog.tsx # TMDB features help
-│   │       └── episodes/[episodeId]/ # Episode detail page
+│   │       └── episodes/
+│   │           └── [episodeId]/
+│   │               ├── page.tsx              # Episode detail with files
+│   │               ├── episode-detail-status-badges.tsx  # Status controls
+│   │               └── file-status-badges.tsx # File quality/action badges
 │   └── api/
 │       ├── settings/route.ts       # Settings API
 │       ├── tv-shows/               # TV Shows CRUD
@@ -158,6 +169,12 @@ src/
 │       │       ├── route.ts        # GET: status
 │       │       ├── cancel/         # POST: cancel scan
 │       │       └── progress/       # GET: SSE stream
+│       ├── platforms/              # Platform management
+│       │   ├── route.ts            # GET: list, POST: create
+│       │   └── [id]/route.ts       # PATCH: update, DELETE: delete
+│       ├── playback-tests/         # Playback test management
+│       │   ├── route.ts            # GET: list, POST: create
+│       │   └── [id]/route.ts       # GET, PATCH, DELETE
 │       └── tmdb/                   # TMDB integration API
 │           ├── search/route.ts     # Search TMDB
 │           ├── match/route.ts      # Match show to TMDB
@@ -174,6 +191,7 @@ src/
 │   ├── settings-shared.ts          # Settings types (client-safe)
 │   ├── format.ts                   # Formatting utilities
 │   ├── status.ts                   # Status badge helpers
+│   ├── playback-status.ts          # Playback test quality computation
 │   ├── scanner/                    # Scanner service
 │   │   ├── config.ts               # Environment config
 │   │   ├── filesystem.ts           # File discovery
@@ -202,6 +220,7 @@ src/
 │   ├── task-progress.tsx           # Real-time task progress display
 │   ├── tmdb-match-dialog.tsx       # Search & match show to TMDB
 │   ├── tmdb-import-dialog.tsx      # Import seasons/episodes from TMDB
+│   ├── playback-test-dialog.tsx    # Record/edit playback tests per episode
 │   └── ui/                         # shadcn/ui components
 └── generated/
     └── prisma/                     # Generated Prisma types
@@ -228,12 +247,30 @@ prisma/
 | `PATCH` | `/api/seasons/[id]` | Update a season (supports `cascade` for monitorStatus) |
 | `PATCH` | `/api/episodes/[id]` | Update an episode |
 
-### Files & Tests
+### Files
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `PATCH` | `/api/files/[id]` | Update file quality/action |
-| `PATCH` | `/api/compatibility-tests/[id]` | Update test status |
+| `GET` | `/api/episodes/[id]/files` | Get episode files with playback tests |
+
+### Platforms
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/platforms` | List all platforms |
+| `POST` | `/api/platforms` | Create new platform |
+| `PATCH` | `/api/platforms/[id]` | Update platform |
+| `DELETE` | `/api/platforms/[id]` | Delete platform |
+
+### Playback Tests
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/api/playback-tests` | List tests (filter by fileId) |
+| `POST` | `/api/playback-tests` | Create new test |
+| `PATCH` | `/api/playback-tests/[id]` | Update test |
+| `DELETE` | `/api/playback-tests/[id]` | Delete test |
 
 ### Settings
 
@@ -293,17 +330,18 @@ prisma/
 | `Season` | `seasonNumber`, `name`, `monitorStatus`, TMDB fields | Season within a show |
 | `Episode` | `episodeNumber`, `title`, `monitorStatus`, TMDB fields | Episode within a season |
 | `EpisodeFile` | `filepath`, `quality`, `action`, codec/resolution fields | Media file with quality state |
-| `CompatibilityTest` | `platform`, `status` | Playback test results per file |
+| `Platform` | `name`, `isRequired`, `sortOrder` | Playback test platforms |
+| `PlaybackTest` | `platformId`, `status`, `testedAt`, `notes` | Playback test results per file |
 | `ScanHistory` | `scanType`, `status`, file counts | Scan operation logs |
-| `Settings` | `dateFormat` | Application settings |
+| `Settings` | `dateFormat`, `maxParallelTasks` | Application settings |
 
 ### Status Enums
 
 ```prisma
 enum MonitorStatus { WANTED, UNWANTED }
-enum FileQuality { UNVERIFIED, OK, BROKEN }
+enum FileQuality { UNVERIFIED, VERIFIED, OK, BROKEN }
 enum FileAction { NOTHING, REDOWNLOAD, CONVERT, ORGANIZE, REPAIR }
-enum TestStatus { NOT_TESTED, WORKS, PLAYABLE, FAILS }
+enum PlaybackStatus { PASS, PARTIAL, FAIL }
 ```
 
 ## Filename Parsing
@@ -355,22 +393,24 @@ Computed from children, never stored directly. Represents the current state of t
 
 ### File Quality
 
-Stored on individual files. User-verifiable state.
+Stored on individual files. Can be auto-computed from playback tests.
 
-| Status | Description |
-|--------|-------------|
-| `UNVERIFIED` | Not yet checked |
-| `OK` | File is good |
-| `BROKEN` | File has issues |
+| Status | Description | Badge Color |
+|--------|-------------|-------------|
+| `UNVERIFIED` | Not yet tested | Yellow (warning) |
+| `VERIFIED` | All required platform tests pass | Green (success) |
+| `OK` | Reserved for future quality property checks | Green (success) |
+| `BROKEN` | At least one required platform test fails | Red (destructive) |
 
-### Test Status (Compatibility Tests)
+**Auto-computation**: When playback tests are recorded, file quality is automatically updated based on required platforms.
 
-| Status | Description |
-|--------|-------------|
-| `NOT_TESTED` | No test performed |
-| `WORKS` | Plays without issues |
-| `PLAYABLE` | Plays with conditions (e.g., needs transcoding) |
-| `FAILS` | Does not play |
+### Playback Status
+
+| Status | Description | Badge Color |
+|--------|-------------|-------------|
+| `PASS` | Plays without issues | Green (success) |
+| `PARTIAL` | Plays with conditions (e.g., needs transcoding) | Yellow (warning) |
+| `FAIL` | Does not play | Red (destructive) |
 
 ### File Actions
 
@@ -462,7 +502,7 @@ View the [Changelog](/changelog) page in the app to see all releases. The versio
 - [x] Two-dimensional status system (monitor intent + quality state)
 - [x] Clickable status badges with cascade updates
 - [x] Single show files sync button + endpoint
-- [ ] Media files playback testing 
+- [x] Media files playback testing
 - [ ] Mobile responsive design improvements
 - [ ] Add manifest for PWA support
 - [ ] ffprobe metadata extraction

@@ -23,12 +23,12 @@
  * - Show quality = worst(season qualities)
  *
  * ## Other Statuses
- * - FileQuality: UNVERIFIED | OK | BROKEN (stored on files)
+ * - FileQuality: UNVERIFIED | VERIFIED | OK | BROKEN (stored on files)
  * - FileAction: NOTHING | REDOWNLOAD | CONVERT | ORGANIZE | REPAIR
- * - TestStatus: NOT_TESTED | WORKS | PLAYABLE | FAILS
+ * - PlaybackStatus: PASS | PARTIAL | FAIL
  */
 
-import type { MonitorStatus, FileQuality, Action, TestStatus } from '@/generated/prisma/client';
+import type { MonitorStatus, FileQuality, Action, PlaybackStatus } from '@/generated/prisma/client';
 
 // Badge variant type (matches shadcn/ui Badge)
 export type BadgeVariant = 'default' | 'secondary' | 'success' | 'destructive' | 'outline' | 'warning';
@@ -58,6 +58,7 @@ export const QUALITY_STATUS_LABELS: Record<QualityStatus, string> = {
 
 export const FILE_QUALITY_LABELS: Record<FileQuality, string> = {
   UNVERIFIED: 'Unverified',
+  VERIFIED: 'Verified',
   OK: 'OK',
   BROKEN: 'Broken',
 };
@@ -70,11 +71,10 @@ export const ACTION_LABELS: Record<Action, string> = {
   REPAIR: 'Repair',
 };
 
-export const TEST_STATUS_LABELS: Record<TestStatus, string> = {
-  NOT_TESTED: 'Not Tested',
-  WORKS: 'Works',
-  PLAYABLE: 'Playable',
-  FAILS: 'Fails',
+export const PLAYBACK_STATUS_LABELS: Record<PlaybackStatus, string> = {
+  PASS: 'Pass',
+  PARTIAL: 'Partial',
+  FAIL: 'Fail',
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -107,6 +107,7 @@ export function getQualityStatusVariant(status: QualityStatus): BadgeVariant {
 
 export function getFileQualityVariant(quality: FileQuality): BadgeVariant {
   switch (quality) {
+    case 'VERIFIED':
     case 'OK':
       return 'success';
     case 'UNVERIFIED':
@@ -127,15 +128,13 @@ export function getActionVariant(action: Action): BadgeVariant {
   }
 }
 
-export function getTestStatusVariant(status: TestStatus): BadgeVariant {
+export function getPlaybackStatusVariant(status: PlaybackStatus): BadgeVariant {
   switch (status) {
-    case 'WORKS':
+    case 'PASS':
       return 'success';
-    case 'PLAYABLE':
-      return 'secondary';
-    case 'NOT_TESTED':
+    case 'PARTIAL':
       return 'warning';
-    case 'FAILS':
+    case 'FAIL':
       return 'destructive';
   }
 }
@@ -145,20 +144,23 @@ export function getStatusVariant(status: string): BadgeVariant {
   switch (status) {
     case 'GOOD':
     case 'WORKS':
+    case 'PASS':
     case 'OK':
+    case 'VERIFIED':
       return 'success';
     case 'WANTED':
       return 'secondary';
     case 'BAD':
     case 'FAILS':
+    case 'FAIL':
     case 'BROKEN':
       return 'destructive';
     case 'TO_CHECK':
     case 'NOT_TESTED':
     case 'UNVERIFIED':
+    case 'PARTIAL':
       return 'warning';
     case 'MISSING':
-    case 'PARTIAL':
     case 'PLAYABLE':
       return 'secondary';
     case 'UNWANTED':
@@ -203,9 +205,11 @@ export function computeEpisodeQuality(
   }
 
   // Map file qualities to quality status
+  // VERIFIED and OK both map to OK for display purposes
   const fileQualities: QualityStatus[] = files.map((f) => {
     switch (f.quality) {
       case 'OK':
+      case 'VERIFIED':
         return 'OK';
       case 'BROKEN':
         return 'BROKEN';
@@ -269,6 +273,7 @@ export const MONITOR_STATUS_OPTIONS: { value: MonitorStatus; label: string }[] =
 
 export const FILE_QUALITY_OPTIONS: { value: FileQuality; label: string }[] = [
   { value: 'UNVERIFIED', label: 'Unverified' },
+  { value: 'VERIFIED', label: 'Verified' },
   { value: 'OK', label: 'OK' },
   { value: 'BROKEN', label: 'Broken' },
 ];
@@ -281,9 +286,8 @@ export const ACTION_OPTIONS: { value: Action; label: string }[] = [
   { value: 'REPAIR', label: 'Repair' },
 ];
 
-export const TEST_STATUS_OPTIONS: { value: TestStatus; label: string }[] = [
-  { value: 'NOT_TESTED', label: 'Not Tested' },
-  { value: 'WORKS', label: 'Works' },
-  { value: 'PLAYABLE', label: 'Playable' },
-  { value: 'FAILS', label: 'Fails' },
+export const PLAYBACK_STATUS_OPTIONS: { value: PlaybackStatus; label: string }[] = [
+  { value: 'PASS', label: 'Pass' },
+  { value: 'PARTIAL', label: 'Partial' },
+  { value: 'FAIL', label: 'Fail' },
 ];

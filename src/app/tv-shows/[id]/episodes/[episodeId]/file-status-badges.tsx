@@ -3,7 +3,7 @@
 /**
  * File Status Badge Components
  *
- * Clickable badges for managing file quality, action, and compatibility test status.
+ * Clickable badges for managing file quality, action, and playback test status.
  * Uses BadgeSelector which handles optimistic updates internally - changes appear
  * immediately while API calls complete in the background.
  */
@@ -12,16 +12,16 @@ import { useRouter } from 'next/navigation';
 import { BadgeSelector } from '@/components/badge-selector';
 import {
   getFileQualityVariant,
-  getTestStatusVariant,
+  getPlaybackStatusVariant,
   getActionVariant,
   FILE_QUALITY_OPTIONS,
   ACTION_OPTIONS,
-  TEST_STATUS_OPTIONS,
+  PLAYBACK_STATUS_OPTIONS,
   FILE_QUALITY_LABELS,
   ACTION_LABELS,
-  TEST_STATUS_LABELS,
+  PLAYBACK_STATUS_LABELS,
 } from '@/lib/status';
-import type { FileQuality, Action, TestStatus } from '@/generated/prisma/client';
+import type { FileQuality, Action, PlaybackStatus } from '@/generated/prisma/client';
 
 interface FileStatusBadgesProps {
   fileId: number;
@@ -88,17 +88,17 @@ export function FileStatusBadges({ fileId, quality, action }: FileStatusBadgesPr
   );
 }
 
-interface CompatibilityTestBadgeProps {
+interface PlaybackTestBadgeProps {
   testId: number;
-  platform: string;
-  status: TestStatus;
+  platformName: string;
+  status: PlaybackStatus;
 }
 
-export function CompatibilityTestBadge({ testId, platform, status }: CompatibilityTestBadgeProps) {
+export function PlaybackTestBadge({ testId, platformName, status }: PlaybackTestBadgeProps) {
   const router = useRouter();
 
   const handleStatusChange = async (newStatus: string) => {
-    const response = await fetch(`/api/compatibility-tests/${testId}`, {
+    const response = await fetch(`/api/playback-tests/${testId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
@@ -114,10 +114,10 @@ export function CompatibilityTestBadge({ testId, platform, status }: Compatibili
   return (
     <BadgeSelector
       value={status}
-      displayLabel={`${platform}: ${TEST_STATUS_LABELS[status]}`}
-      variant={getTestStatusVariant(status)}
-      getVariant={getTestStatusVariant}
-      options={TEST_STATUS_OPTIONS}
+      displayLabel={`${platformName}: ${PLAYBACK_STATUS_LABELS[status]}`}
+      variant={getPlaybackStatusVariant(status)}
+      getVariant={getPlaybackStatusVariant}
+      options={PLAYBACK_STATUS_OPTIONS}
       onValueChange={handleStatusChange}
     />
   );

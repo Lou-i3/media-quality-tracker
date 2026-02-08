@@ -41,13 +41,6 @@ Read-only sync with Plex SQLite database:
 - Enrich Movie/TVShow entities with Plex data
 - Mark `plexMatched = true` on synced files
 
-### Playback Compatibility Testing UI
-The `CompatibilityTest` model exists but needs UI:
-- Add/edit tests on file detail pages
-- Platforms: TV Direct, Mobile, Web, Roku, Apple TV, etc.
-- Statuses: WORKS, FAILS, NEEDS_TRANSCODING, NOT_TESTED
-- Bulk: copy tests between files
-
 ### Advanced Filtering
 - Save filter presets (e.g., "Files Needing Work")
 - Filter persistence in URL query params

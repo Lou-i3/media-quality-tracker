@@ -29,7 +29,8 @@ enum MonitorStatus {
 /// Quality state for files
 enum FileQuality {
   UNVERIFIED
-  OK
+  VERIFIED    // All required playback tests pass
+  OK          // Reserved for future quality property checks
   BROKEN
 }
 
@@ -42,12 +43,11 @@ enum Action {
   REPAIR
 }
 
-/// Compatibility test result
-enum TestStatus {
-  NOT_TESTED
-  WORKS
-  PLAYABLE      // Works with transcoding/conditions
-  FAILS
+/// Playback test result
+enum PlaybackStatus {
+  PASS        // Plays without issues
+  PARTIAL     // Plays with transcoding/conditions
+  FAIL        // Does not play
 }
 
 /// Scan job status
@@ -170,7 +170,7 @@ model EpisodeFile {
   audioLanguages    String?
   subtitleLanguages String?
 
-  compatibilityTests CompatibilityTest[]
+  playbackTests PlaybackTest[]
 
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -180,17 +180,32 @@ model EpisodeFile {
   @@index([action])
 }
 
-model CompatibilityTest {
-  id            Int      @id @default(autoincrement())
-  episodeFileId Int?
-  episodeFile   EpisodeFile? @relation(fields: [episodeFileId], references: [id], onDelete: Cascade)
+/// Playback test platforms (TV, Web Player, Mobile, etc.)
+model Platform {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  isRequired  Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
 
-  platform      String
-  status        TestStatus
+  playbackTests PlaybackTest[]
+}
+
+/// Playback test results per file
+model PlaybackTest {
+  id            Int            @id @default(autoincrement())
+  episodeFileId Int?
+  episodeFile   EpisodeFile?   @relation(fields: [episodeFileId], references: [id], onDelete: Cascade)
+  movieFileId   Int?           // Future: for movies
+
+  platformId    Int
+  platform      Platform       @relation(fields: [platformId], references: [id])
+  status        PlaybackStatus
   notes         String?
-  testedAt      DateTime @default(now())
+  testedAt      DateTime       @default(now())
 
   @@index([episodeFileId])
+  @@index([platformId])
 }
 
 model ScanHistory {

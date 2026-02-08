@@ -34,9 +34,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, PlayCircle } from 'lucide-react';
 import { SeasonDialog } from './season-dialog';
 import { EpisodeDialog } from './episode-dialog';
+import { PlaybackTestDialog } from '@/components/playback-test-dialog';
 import { BadgeSelector } from '@/components/badge-selector';
 import type { MonitorStatus } from '@/generated/prisma/client';
 
@@ -245,6 +246,18 @@ export function SeasonsList({ showId, showTmdbId, seasons }: SeasonsListProps) {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-1">
+                            {episode.files.length > 0 && (
+                              <PlaybackTestDialog
+                                episodeId={episode.id}
+                                episodeTitle={episode.title}
+                                seasonEpisode={`S${String(season.seasonNumber).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`}
+                                trigger={
+                                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <PlayCircle className="h-4 w-4" />
+                                  </Button>
+                                }
+                              />
+                            )}
                             <EpisodeDialog
                               episode={episode}
                               seasonNumber={season.seasonNumber}
